@@ -1,0 +1,9 @@
+La idea es que cada carpeta tenga un ejercicio por separado, asi no te llenas de cosas, y para que el make siga funcando, cuando te metes, creas un makefile y lo haces asi:
+
+TARGET = main
+SRCS = main.c funciones.c
+
+include ../Makefile	
+
+Asi incluye el makefile grande de la carpeta principal. 
+En TARGET pones el nombre que queres que tenga el .exe, y en SRCS todos los .c que tengas.

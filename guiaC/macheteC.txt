@@ -1,0 +1,993 @@
+Etapas de compilacion:
+
+-Preprocesamiento: El preprocesador de C toma el source y hace unas transformaciones,
+los source suelen ser .c y headers .h. Aca se hacen los reemplazos sintacticos de 
+headers por su contenido, se reemplazan macros, se matan comentarios, etc. 
+En los .h solo estan las DECLARACIONES de las funciones de los include, no hay definiciones,
+esas estan en binario en otro lado.
+Para invocar solo el preprocesador se puede hacer:
+
+gcc -E archivo.c -o archivo.i
+
+
+-Compilacion:Aca, el compilador de C toma el archvio generado anterior y lo pasa a 
+assembly, da un archivo .s, esto se hace con:
+
+gcc -S archivo.c -o archivo.s
+
+
+-Ensamblado: El ensamblador toma el anterior y lo convierte en un archivo objeto que 
+es un .o ,y tiene el codigo de maquina directamente (binario), que se hace con: 
+
+gcc -c archivo.c -o archivo.o
+
+
+-Linking: Aca el linker toma los archivos .o generados por el ensamblador y los combina en 
+un solo ejecutable. Aca se resuelven ;as referencias a funciones y var globales. Si una 
+de estas es declarada en un source y definida en otro archivo, el linker soluciona, si
+no se encuentra esto en otra, explota, y lo mismo si hay mas de una def. Tambien se linkean
+las bibliotecas estaticas y dinamicas con funciones ya compiladas de la biblio estandar de c.
+Las estaticas se pegan directo al codigo y las dinamicas se pasa una referencia(?.
+Genera el ejecutable .out
+Se lo puede ejecutar asi:
+
+gcc archivo.o -o binario
+
+
+
+Compilar distintos archivos juntos: 
+1) Pasas todo lo que tenga codigo fuente (los .c)  a objetos (.o) haciendo
+gcc -c archivo.c -o archivo.o   --> La cantidad de archivos que tengas.
+
+2) Le pasas al linker todos los .o juntos en un solo comando:
+gcc archivo1.o ...archivon.o -o binario
+
+y despues podes ejecutarlo con un ./binario (binario es un nombre opcional en todo esto)
+
+
+Para que un archivo .c funque, necesitas un main() {return 0} como 
+minimo. El valor es devuelto al SO, el 0 indica todo cheto.
+
+$gcc -c hola.c -o hola.o 
+$gcc hola.o -o hola
+
+Esto crea el codigo objeto .o , y despues el archivo se linkea pa formar el exe, 
+y la siguiente linea ejecuta eso. En el primer paso estas generando el objeto 
+y en el segundo pasando del objeto a binario. En linux los binarios no tienen
+extension .algo.
+El flag "-o" te deja elegir el nombre del output file como lo que eligas.
+
+Podes pasar de directamente del .c a binario asi:
+gcc hola.c -o nombreExe
+
+y despues de haber hecho cualquiera de esos pasos, podes ejecutarlo con:
+
+./hola  
+
+Nos va a interesar unos flags, -Wall -Wextra -pedantic , que tiran errores y cosas,
+quedando asi:
+
+$gcc -Wall -Wextra -pedantic -c hola.c -o hola.o 
+$gcc -Wall -Wextra -pedantic hola.o -o hola
+
+Makefile: make es una herramienta donde podemos especificar como se compila
+un programa, un archivo Makefile contiene las reglas que le dicen a make como
+compilar. 
+Permiten defnir dependencias entre archivos (se necesita X para compilar Y) y resolver
+tambien. Definiendo targets y "recetas" podemos compilar binarios y ejecutuar el codigo.
+
+1) Creamos un archivo llamado Makefile, necesariamente se llama asi.
+
+2) Definmos targets
+
+all: hola
+
+hola: hola.o
+    gcc -Wall -Wextra -pedantic hola.o -o hola
+
+hola.o: hola.c
+    gcc -Wall -Wextra -pedantic -c hola.c -o hola.o
+
+clean:
+    rm *.o hola
+
+.PHONY: all clean
+
+El Makefile va a definir los targets de lo que queremos hacer con que cosas, y hay convenciones,
+el target all es el que se ejecuta si no aclaras ningun target, asiq hacer "make" ejecuta el de 
+all, y otros, el target clean se usa para limpiar los archivos generados por la compilacion.
+En este caso, se eliminan los archivos .o y el binario hola.
+
+Makefile funca de la siguietne forma:
+Vamos a explicarlo con el makefile actual, si solo haces make, tas haciendo el target: all, 
+que depende de "hola" que es el ejecutable del programa, como hola no fue creado todavia, entonces
+busca como construirlo, que aparece en en el siguiente como hola:hola.o , osea, que para hacer 
+hola, necesita hola.o, y como hola.o todavia no esta en el directorio, busca como armarlo, encontrando
+el hola.o: hola.c, y ahora llegamos al hola.c, que es nuestro codigo fuente, tonces, al tener 
+esto, ejecuta los comandos del cuerpo, y despues volviendo para atras, ejecuta los comandos 
+que se dejo antes porq todavia no tenia los archivos necesarios, ahora teniendo las dependencias 
+puede ir volviendo.
+
+Tambien podemos defnir variables que contengan el compilador a usar y las CFLAGS para las flags,
+de esta manera, si queremos cambiar de compilador o cambiar algun flag, solo cambiamos la variable
+y no toda la receta.
+
+CC = gcc
+CFLAGS = -Wall -Wextra -pedantic
+
+all: hola
+
+hola: hola.o   #Terminan siendo reemplazos sintacticos. Se usa con el $(VAR)
+    $(CC) $(CFLAGS) hola.o -o hola
+
+hola.o: hola.c
+    $(CC) $(CFLAGS) -c hola.c -o hola.o
+
+clean:
+    rm *.o hola
+
+.PHONY: all clean
+
+
+Despues podemos seguir aumentando la cosa con variales automaticas, son variales que
+make define automaticamente, y contienen info sobre el target actual, ej:
+$@   --> Contiene el nombre del target actual
+$<   --> Contiene el primer prerequisito (dependencia)
+$^   --> Contiene todos los prerequisitos.
+
+Tambien podemos definir una variale TARGET que tenga el nombre del binario a generar, 
+asi, si queremos cambiarle el nombre, solo editamos TARGET y nada mas.
+
+
+
+
+CC = gcc
+CFLAGS = -Wall -Wextra -pedantic
+TARGET = hola
+all: $(TARGET)
+
+$(TARGET): hola.o
+$(CC) $(CFLAGS) $^ -o $@
+
+hola.o: hola.c
+$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+rm *.o $(TARGET)
+
+.PHONY: all clean
+
+Mas alla de los simbolos raros, podemos hacer que el make tambien ejecute el archivo
+si al all: $(TARGET) le agregamos el comando abajo:
+./$(TARGET)  --> Que hace que se ejecute.   
+
+
+Cuando queremos compilar multiples archivos que se tienen que pasar a un .o, pasa
+que hay patrones que se repiten mucho, ej:
+
+main.o: main.c
+    $(CC) $(CFLAGS) -c $< -o $@
+
+funca.o: funca.c
+    $(CC) $(CFLAGS) -c $< -o $@
+
+funcb.o: funcb.c
+    $(CC) $(CFLAGS) -c $< -o $@
+
+Aca los 3 .0 hacen lo mismo, y para esto, podemis definir una regla generica 
+con el "%", es un comodin que representa cualquier cadena de caracteres, por lo 
+que podemos definir una regla generica para compilar cualquier archivo fuente
+en un tipo objeto, esot se llama pattern rule, decir %.c o %.o es "Todos los 
+archivos terminados en .c o .o" basicamente, es el equivalente al "*" en el shell.
+
+Y tambien, como los nombres archivos fuetne generan archivos objeto con el mismo 
+nombre, podemos usar una var para deifnir el nombre de los fuentes, y despues, con
+substitution reference, podemos generar los nombres de los archivos objketo, usando
+la linea OBJ = $(SRC:.c=.o), esta linea le dice a make que genere una lista 
+de archivos objetos a partir de la lista de archivos fuente. Es algo como 
+“Tomá una variable de lista de palabras y reemplazá un patrón por otro dentro de cada palabra”.
+Hace un reemplazo sinctactico en la lista de palabras que tengas. De esta forma, no tenes que 
+escribir 2 veces todos los archivos con una terminacion distinta, le decis que queres qeu cambie.
+Aca tenemos los SRCS que son los archivos fuente, en .c, y despues los OBJS, que son los nombres de 
+los archivos fuentes pero reemplazados por .o, asiq son los objetos
+
+$(VAR:patrón1=patrón2)
+
+
+CC = gcc
+CFLAGS = -Wall -Wextra -pedantic
+TARGET = binario
+
+all: $(TARGET)
+
+SRCS = funca.c funcb.c main.c
+OBJS = $(SRCS:.c=.o)
+
+$(TARGET): $(OBJS)                 --> El programa  que queres ejecutar necesita todos sus objetos para eso.
+    $(CC) $(CFLAGS) $^ -o $@           por lo que dice que los necesita, y despues para hacer cada .o, esta 
+                                       el %.o: %.c, todo .o necesita su .c, esos los tenemos, asiq se ejecutan  
+%.o: %.c                               los pasos de .c a .o, y despues de conseguir todos, vuelve al de arriba.
+    $(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+    rm *.o $(TARGET)
+
+.PHONY: all clean
+
+Y ahora vamos a agregar headers a toda la fiesta, los headers tienen muchos problemas de definicion y 
+si cambias uno rompes otra cosa, cada archivo .o va a necesitar su .c y .h, para todo esto, tenemos 
+flags de compilacion de gcc, -MMD -MP, Esto hace que egenero unos archivos de dependencias con extension
+.d, estan en la carpeta estos, ya que el compilador estudia todas las dependencias entre los archivos, 
+con este flah le decimos que nos  genere los targets armados de Makefile que ya nos sirvan. es cooperacion
+entre el compilador y make, y despues le hacemos un -include para "pegar" las reglas para informar amake
+que tenga en cuenta esas dependencias, y mande la compilacion en caso de cambios en los headers. El 
+-include le dice al header que inclluya el archivo de dependencias pero no arroje error si no existe.
+
+
+CC = gcc
+CFLAGS = -Wall -Wextra -pedantic -MMD -MP
+TARGET = binario
+
+all: $(TARGET)
+
+SRCS = funca.c funcb.c main.c
+OBJS = $(SRCS:.c=.o)
+
+$(TARGET): $(OBJS)
+    $(CC) $(CFLAGS) $^ -o $@
+%.o: %.c
+    $(CC) $(CFLAGS) -c $< -o $@
+
+-include £(OBJS:.o=.d)
+
+clean:
+    rm *.o $(TARGET) *.d
+.PHONY: all clean
+
+
+
+headers: En el .c de un header, lo incluis a el mismo, como primero que todo.
+#include "archivo.h"
+
+Y en el header esto:
+
+#ifndef FUNCA_H -> Haces el header guard con if not define NOMBREHEADER_H
+#define FUNCA_H
+void a();
+#endif // FUNCA_H
+
+
+Las variables globales se deben declarar en las header files como
+extern tipo var;   y despues definirlas una sola vez en un .c, si 
+solo haces en un header: tipo var; cuenta como una definicion somehow.
+
+
+Variables: En C, toda variable debe ser declarada al principio antes de ser usada, asi puede reservar 
+memoria mejor el compilador(?)
+
+declaracion  definicion: Declarar una variable o una funcion es dar su nombre y tipo, nada mas, definirlas es 
+en una variable dar el valor que va a tener y en una funcion definir el cuerpo, normalmente hacemos ambas a la 
+vez, tipo, nombre y definicion..
+
+return-type function-name (parameters){
+declarations
+statements
+}
+
+funcion sin parametros: tipo nombre(void), indica que no toma parametros.
+
+pasar por valor: Pasar el elemento normal, no lo modificas.
+pasar por referencia: Pasar el puntero del objeto
+
+extern int mi_int declara una variable de tipo int. Su definici´on puede estar en otro
+archivo.
+
+Literales:
+    Son valores escritos de una en el codigo, 100, 298, 5.4, ect. El punto, 
+    hay 2 tipos de literales, int y double, desde ahi, los demas necesitan 
+    modificadores para indicar que es un tipo distinto, por ej:
+    40 -> asi no mas, es un signed int.
+    40U -> unsigned int.
+    40L -> signed long int.
+    40ULL -> unsigned long long int. asi funca la cosa.
+
+    punto flotante:
+    40.0  -> asi no mas, es un double.
+    40.0f -> float.
+    40.0L -> long double.
+
+Constante: const tipoVar nombreVar = valorVar;
+
+enumeracion: Te deja enumerar cosas y le asigna un numerito?
+enum Color { RED, GREEN, BLUE };
+enum Color c = RED;
+printf("%d\n", c); // imprime 0
+
+Casteo: (tipoQueQueremos) expresion
+
+for (int i = 0; i < length; i++) {
+decoded[i] = (char) (mensaje_secreto[i]); // casting de int a char
+} --> Aca itera y guarda en la posicion i del decoded el valor que estaba en la posicion 
+i del mensaje_secreto pero pasado a char, los numeros enteros pasados a char se suelen 
+traducir en sus letras segun ASCII.
+
+se reinterpretan el tipo de datos, sin modificar la representación binaria
+int* i = (int*) un_int;
+
+se modifica la representación binaria del dato, por ejemplo en
+int i = (int) un_float;
+
+Hay que tener cuidado de no perder informacion.
+
+Shifting y mascaras:
+Shifting es desplazar los bits de un numero hacia la izquierda o la derecha en cierta
+cantidad:
+
+shift Izq:
+
+uint8_t a = 0x6D 
+a = a << 1;   -> desplaza a izquierda todos los bits de a, mete un 0 al principio.
+
+shift Der: Tiene 2 tipos, el logico y el aritmetico.
+Aritmetico: Si shifteamos un entero con signo, es aritmetico, mantiene el signo a la izquierda 
+que indica negativo o positivo.
+Logico: Si shifteamos un entero sin signo a derecha, metemos un 0 al principio siempre, como 
+el de izquierda.
+
+Masscaras: Son operaciones en las que realizas una operacion binaria AND o OR bit a bit 
+entre 2 numeros para dejar los bits que qeurramos intactos y los que no los tiramos, el 
+nombre viene de enmascarar los bits que no queremos modificar.
+
+Ej:
+
+uint8_t a = 0x6D        01101101
+uint8_t mask = 0xF0     11110000
+
+a & mask =              01100000 
+
+Poner un bit en 1 en una palabra se llama set y uno en 0 clear. 
+El setteo se hace con un OR con 1 y clerear un bit con un AND y 0.
+Combinar 2 palaras de 8 bits podemos hacerlo asi:
+
+a    =     01101101                b = 01010111
+              &                           &
+mask =     00011000          !(mask) = 11100111     
+
+a 7 mask = 00001000      b & !(mask) = 01000111
+
+(a & mask) | (b & !(mask)) = 01001111
+
+Aca mezclamos 2 palabras de 8 bits usando la mascara, con mask y !(mask) y el AND
+podemos laburar con 2 partes distintas en cada palabra, y despues con un OR a ambos 
+resultados, combinas los bits de ambas.
+
+EStructuras control: Tenemos el if-then-else y Switch (pattern matching), while y for(int i = 0; i < 10; i++),
+el break corta el ciclo en seco, y el continue pasa directametne a la siguiente iteracion del ciclo.
+
+Array: Un array es una tira contigua en memoria de elementos del mismo tipo.
+IMPORTANTISIMO: Cuando le pasas un array como param a una funcion, pasa un puntero
+al primer elemento, no el array en si, asiq no podes calcular el tam del array dentro.
+En C un array en una variable es un puntero al primer elemento.
+
+IMPORTANTISIMO: La aritmetica de punteros hace que las sumas y restas esten alineadas,
+osea, digamos que tengo int a[] = {1,2,3};, en mem, cada uno ocupa 4, y si yo asigno 
+un int *pt = a;, tengo un puntero al primer elemento, ahora, si le hago
+*pt += 1; se entiende que le suma 1 byte al tema, asiq si me fijo *pt, deberia darme 
+un valor desalineado, la pos de mem + 1, pero por el compilador, ya sabe que estas 
+en enteros, asiq cuando le suma 1, en realidad le suma 4.
+
+
+
+#define N 4
+uint32_t a[N];
+a[0] = 0;
+a[1] = 20;
+a[2] = 14;
+a[3] = 40;
+
+define N 4
+uint32_t a[N] = {0, 20, 14, 40};
+uint32_t b[] = {0, 20, 14, 40};
+uint32_t c[N] = {0}; // c es {0, 0, 0, 0}
+uint32_t d[] = {[1] = 20, [2] = 14, [3] = 40};
+
+Strings: Son arrays de char donde el ultimo elem es el caracter nulo '\O'.
+
+char s[] = "Hola!"; // string literal
+char u[] = {'H', 'o', 'l', 'a', '!', '\0'}; // char literals
+Son iguales.
+
+El string en memoria, al ser un array de char, se guardan a lo largo y van ocupando las 
+posiciones anteriores llenas y las que necesiten de la nueva, ej: Hola!\O se va a guardar
+el Hola en un bloque de memoria (asumimos que los bloquues son de 4 bytes), y el ! y \O en 
+los primeros 2 bytes del siguiente. 
+
+TypeAlis:
+
+Ponerle un nombre a un tipo de dato comun para poder ganar abstraccion:
+
+typedef float real_t;
+typedef int quantity_t;
+typedef unsigned long int size_t; // en <stdint.h>
+typedef uint32_t vaddr_t; // direccion virtual.
+typedef uint32_t paddr_t; // direccion fisica
+
+
+Estructuras:
+
+struct nombreTipo {
+    atributos;
+}
+
+despues podes crearte una haciendo
+struct nombreTipo identificador;
+
+y acceder a sus campos con id.campo = x;.
+
+Podes declararla ciuando la inicializas con llaves:
+
+struct nombreTIpo id = {campo1,campo2,campo3};
+
+
+#define NAME_LEN 50
+struct player{
+    int elo;
+    char name[NAME_LEN + 1];
+    int ranking;
+};
+
+struct player player1 = { 2800, "Magnus Carlsen", 1 },
+struct player player2 = { 2700, "Fabiano Caruana", 2 };
+
+Podes hacerlos anonimos:
+
+struct {
+    cuerpo;
+}   nombreInstancia
+
+Tonces, si lo combinas con typedef, llegas a: 
+
+typedef struct {
+    datos
+} nombreStruct
+
+y la forma final de los structs es: 
+
+typedef struct nombre {
+    cuerpo
+} nombre; 
+basicamente esto es lo mismo, podes decir tipo de dato nombre, solo que 
+acalras que el typdef es de struct nombre...?
+
+y ahora, declarar uno de estos no requiere que pongas el struct nombre, sino que:
+
+nombreStruct id;, de esta forma, te ahorras el struct.
+
+asi creas una unica instancia de ese struct, al cual podes acceder con 
+nombreInstancia.
+
+La asginacion crea una copia del struct.
+Podes pasarlo como argumento por copia o por punteros y tambien puede ser devuelto un struct.
+
+Se guarda en memoria segun el orden de los datos y su peso, si 
+tenes uno con un array de chars de 50, tonces va a guardarse 
+esos 50 contiugos, y si tambien tiene un int "peso" digamops, 
+aparece justo despuoes que el array, reserva la memoria contigua.
+
+Hay padding: Ya que el struct tiene que reservar el espacio de memoria
+necesario para el struct, hay veces que podes pedir una cantidad de espacio 
+en bytes que no sea multiple de 4, por lo que queda "desalineado" la direccion de
+memoria donde deberia estar el dato. Para eso, el compilador hacel el padding, que 
+es sumar la diferencia entre lo que estsamos usuando del bloque actual y lo que 
+nos queda para estar alineado, ej:  bloques de 32 bits, osea, 4 bytes, 
+char d;  -> Mi struct necesita este espacio para guardar eso.
+
+la direccion de memoria quedaria (empezando en 0x000000 por cuestiones practicas),
+0x0000001 , asiq esta desalineada, por lo que el padding seria sumar 3 para 
+que llegue 0x0..04. 
+
+--Punteritos: Son pasados por valor, podes modificarlos y siguen igual, pero podes 
+aprovechar esto para modificar a donde apuntan.
+tipoDeDato *id = &x;   --> id es un puntero a la direccion de memoria de x.
+tipoDeDato *id = x;   --> id es un puntero al valor de x, se entiende que el valor es la direc.
+
+
+El * cuando acompana a una variable ya declarada: nos permite desreferenciar la variable 
+que acompania (que deberıa ser un puntero), permitiendonos acceder al valor que
+se encuentra en la direccion guardada en la variable. * en este contexto, es tambien
+llamado operador de indireccion.
+
+uint8_t *x = (uint8_t*) 0xF0;
+int8_t *y = (int8_t*) 0xF6; 
+
+aca los (tipo*) son casteos, porq sino, se entiende que 0xF0 y el otro son de tipo int 
+asiq, cuando haces un puntero con un valor inmediato, castealo a puntero en la definicion.
+Igual es muy probable que falle una asignacion directa de memoria porq no sabemos los 
+segmentations actuales.
+
+Podes hacer asignaciones y re asiganciones al valor de un puntero asi:
+
+int x = 20;
+int *px = &x;  
+print(*px) --> da 20
+*px = 50;
+print(*px) --> da 50
+
+puntero generico: void* ptr;  declaras que es un puntero generico, sirve para almacenar 
+una direcion de cualquier tipo y no se puede desreferenciar directamente, sirve para 
+cuando queres hacer generico un tipo de parametro, pones que es de esto y despues lo 
+casteas.
+
+void* ptr;
+int x = 42;
+ptr = &x; // ptr apunta a la direcci ́on de x
+// Convertir el puntero void* a un puntero int*
+int* p = (int*)ptr;
+printf("Valor: %d\n", *p); // Imprime 42
+
+puntero null: NO apunta a nada, sirve para mostrar que no esta inicializado o que no esta
+apuntando a un lugar valido. NULL es una constante definida en stddef.h y se corresponde 
+con el int 0 (cero). El NULL es comparable con == con punteros, o tambien podes usarlo 
+como condicion logica, ya que NULL es falso en C.
+
+Buena practica: Todo puntero inicializado ponelo en NULL. 
+Malloc devuelve NULL si no puede asignar memoria.
+
+Aritmetica de punteros, cuando le sumes a un puntero un valor entero, va a sumar 
+en funcion del tamaño del tipo de dato al que le apunta, si tenes un array de 
+int, hacer puntero += 1 le suma en realidad 4 (bytes) en vez de 1, asi se mantiene
+alineado., y con los punteros podes acceder a las posiciones de los arrays tambien
+
+int arr[7] = {1,2,3,4,5,6,7};
+int *p = arr;
+// p apunta a la direcci´on del primer elemento del array
+printf("%d\n", *p); // imprime 1
+printf("%d\n", *(p+1)); // imprime 2
+printf("%d\n", *(p+2)); // imprime 3
+printf("%d\n", p[4]); // imprime 5
+
+p[x] aca x va a ser la direccion donde empieza el puntero + el valor de indice que le 
+pongas al corchete multiplicado por el tamaño del tipo de dato del array, es como cuando 
+indexas en assembly, que tenes que saber mucha info:
+
+p[4] = p[direccionMemInicial+(tamañoDato * IndicePasado)],se puede pensar el [] como 
+un operador de desreferencia
+
+p[0] == *(p+0) == *p
+p[1] == *(p+1)
+...
+p[n] == *(p+n)
+
+
+const int* o const char* hace que no podamos moficiar EL VALOR al que apuntan, no el puntero 
+en si.
+
+site_t lenght(char *str) {
+size_t len = 0;
+while (*str != '\0') {
+len++;
+str++;
+}
+return len;
+}
+
+Mem: Hay varios tipos de mem
+Mem de codigo: Es la que se reserva para almacenar el codigo del programa,
+su tamaño no puede cambiar durante la ejecucion del programa, es solo de lectura
+y se define en el text segment del programa.
+
+Mem automaticas(stack): Tipo que se reserva en el momento de ejecucion, las var locales 
+se almacenan aca, su tamaño puede cambiar durante la ejecucion del programa,
+es el stack.
+
+Mem estatica: Es la que se reserva en el momento de compilacion, lasvar globales 
+y estaticas se almacenan aca, su tamaño no se puede cambiar durante la ejecucion,
+se definen en el data segment del programa.
+
+Mem dinamica: Es la que se reserva en el momento de ejecucion, y su tamaño puede cambiar 
+durante la ejecicion del programa, se utilizapara almacenar datos que no se conocen en 
+tiempo de compilacion.
+
+Cada mem tiene un linkage diferente, es la forma en qeu es accesible desde diferentes 
+archivos o modulos:
+
+interno: el sımbolo es accesible solo dentro del archivo donde se declara.
+externo: el sımbolo es accesible desde cualquier archivo que incluya su declaraci´on.
+no-linkage: el sımbolo no tiene linkage, es decir, no es accesible fuera de su scope.
+
+
+El linkage de una var fuera de cualquier foo lo especificamos con static, esto significa 
+que la variable no es accesible desde otros archivos pero su duracion es la misma que 
+una global.Una var global por default es externa, y la funciones,si queremos linkage 
+interno, hay que decirle static
+
+Reservar mem:
+Para reservar memoria dinámica en C, usamos las funciones malloc, calloc, realloc y free.
+Estas funciones son parte de la biblioteca estándar de C y se encuentran en el archivo de cabecera
+stdlib.h.
+
+malloc: reserva un bloque de memoria de un tamaño específico y devuelve un puntero a
+la dirección de memoria reservada. La memoria no se inicializa.
+
+calloc: reserva un bloque de memoria para un número específico de elementos de un
+tamaño específico y devuelve un puntero a la dirección de memoria reservada. La memoria
+se inicializa a cero.
+
+realloc: cambia el tamaño de un bloque de memoria previamente reservado y devuelve
+un puntero a la nueva dirección de memoria. Si la nueva dirección es diferente, la memoria
+anterior se libera automáticamente.
+
+free: libera un bloque de memoria previamente reservado.
+
+void* malloc(size_t size);
+void* calloc(size_t num, size_t size);
+void* realloc(void* ptr, size_t size);
+void free(void* ptr);
+
+Siempre es IMPORTANTISIMO usar el free despues de haber usado malloc, porq sino perdemos 
+mem y tenemos un memory leak, suele ser normal usar una funcion que reserve mem y despues 
+en otro lado usar free.
+
+
+type_t:
+Se usa un typedef para definir el tipo type t, que es un enum que representa los diferentes
+tipos de sistemas de archivos. Recordemos que un enum es un tipo de dato que permite definir
+un conjunto de constantes enteras con nombre. En este caso, TypeFAT32, TypeEXT4 y TypeNTFS
+son los nombres de las constantes que representan los diferentes tipos de sistemas de archivos.
+Las funciones de tipo new crean archivos, y las funciones de tipo copy copian archivos y las
+funciones de tipo rm eliminan archivos. 
+
+Orga mem: 
+Cuando decimos variables globales no inicializadas, nos referimos a variables globales que
+no tienen un valor asignado al momento de la declaraci´on por parte del programador. Esas
+variables, a diferencia de lo que sucede con las variables locales, tenemos garant´ıas que ser´an
+inicializadas a 0. Esto es porque el compilador reserva espacio para esas variables en el segmento
+bss y las inicializa a 0. Esto no sucede con las variables locales, que se reservan en el stack y no
+tienen un valor asignado al momento de la declaraci´on. Por lo tanto, su valor es indefinido. Si
+inicializamos las variables globales, el compilador reserva espacio para esas variables en el data
+segment y las inicializa con el valor que les asignamos. Esto es lo que sucede con las variables
+globales inicializadas. Las variables est´aticas no globales tambi´en van a parar al data segment o
+al bss seg´un si est´an inicializadas o no.
+
+Problemas mem dinamica:
+Memory leak: Me olvide de liberar la mem usada
+dangling pointer: Acceso a un puntero a una direccion invalida, seg fault y otras cosas.
+double free: Liberar la misma mem 2 veces.
+use after free: Usar un puntero despues de liberarlo.
+
+Valgrind: es una herramienta de depuraciion que se utiliza para detectar errores de memoria en programas.
+Para usar valgrind, es recomendable compilar el programa con la opci´on -g para incluir informaci´on de
+depuraci´on. Luego, se puede ejecutar el programa con valgrind ./programa. Luego de ejecu-
+tar el comando, valgrind mostrar´a informaci´on sobre las fugas de memoria, accesos a memoria
+no v´alida y otros problemas de memoria. M´as info en https://valgrind.org/docs/manual/
+quick-start.html.
+
+Punteros a punteros:
+int**: puntero (int**) a un puntero a un entero (int**)
+void**: puntero a puntero a un tipo desconocido. No se puede desreferenciar sin antes
+especificar su tipo mediante un casteo.
+char* argv[]: array de punteros a char. Esto es lo que se usa para pasar argumentos
+a la funcion main. En este caso, argv es un puntero a un array de punteros a char. Es
+decir que cada puntero apunta a un string (un array de char). Es lo mismo escribirlo como
+char** argv3
+
+
+Son utils para modificar punteros en si, ej: El de la guia de allocateArray, lo que busca es 
+que pasado un puntero de int y un tamaño, cree un array en el heap y que el puntero que le pasaste 
+termine apuntando hacia el. Tonces, que pasa, vos cuando pasas un dato a una funcion, terminas 
+pasandolo por copia, si es un valor normal, es una copia de eso, y si es un dato complejo, un puntero
+a este dato, pero el valor de la direccion, osea, si modificas ese puntero, es lo mismo que intentar 
+modificar el valor de una variable pasada por copia, solo lo haces en el scope local, para eso usan 
+los punteros con otros datos, si queres modificar el valor de 2 enteros, swapearlos digamos, tenes 
+que pasar sus punteros, asi, en la direccion de mem que tengan, le cambias los datos, el puntero 
+te pasa info importante por copia, la direccion, asi editas el valor. Bueno, entonces si quiero 
+modificar el valor de un puntero, voy a necesitar la direccion de memoria del puntero, oseaaaaa,
+UN PUNTERO AL PUNTERO, parece que la regla de oro aca es: Queres modificar un dato?, necesitas 
+un puntero hacia este. De esta forma, si te pasan un puntero como en este caso, vos agarras 
+y decis que el parametro de entrada es int **array, asi podes modificar el valor del puntero 
+dentro de la funcion haciendo las asignaciones asi: *arr =valor;,  
+
+Tenes que decir que el argumento de la funcion es un puntero a puntero, osea, dato **id, 
+y cuando pases el puntero que queres modificar, lo haces con el &id, asi, pasas la direccion
+de mem del puntero, por ende, podes modificar a lo que apunta ese puntero.
+
+Arrays multidimensionales:
+Los arrays multidimensionales son arrays de arrays. En C, los arrays multidimensionales se
+representan como punteros a punteros. Por ejemplo, un array de dos dimensiones se representa
+como un puntero a un puntero
+
+int a[ROWS][COLS];
+
+Podemos pensar en a como un puntero a un puntero. En este caso, a es un puntero a un array
+de COLS enteros. Por lo tanto, a es de tipo int (*)[COLS]. Esto significa que a es un puntero
+a un array de enteros de tama˜no COLS. Notar que ponemos el operador * entre par´entesis para
+indicar que a es un puntero a un array de enteros. Si no lo hici´eramos, a ser´ıa un array de
+punteros a enteros, que no es tecnicamente lo mismo.
+
+En cristiano: a es un puntero a punteros, osea, a apunta a la primera posicion del array, y 
+el array son punteros, como un puntero es la primera pos del array, un puntero a puntero es 
+un array de arrays. 
+
+La notacion a[i][j] es equivalente a *(a[i] + j).
+La notacion a[i][j] es equivalente a *(a + i*COLS + j).
+El tipo de a es int (*)[COLS], puntero a arreglo de enteros.
+int nombre[n] → “nombre es un arreglo de n enteros”.
+int *nombre → “nombre es un puntero a entero”.
+int (*nombre)[n] → los paréntesis cambian la precedencia:
+sin paréntesis: int *nombre[n] sería un arreglo de n punteros a entero.
+con paréntesis: (*nombre) primero, así que es un puntero a arreglo de n enteros.
+Vos a las funciones le queres pasar el puntero,
+void f(int (*p)[4]) {
+    printf("%d\n", p[1][2]); // Accede a fila 1, col 2
+}
+Cuando pasás una matriz a una función, se convierte automáticamente en un puntero a su primera fila.
+
+En memoria, los arrays multidimensionales se almacenan en orden de fila (Row-major
+order). Esto significa que los elementos de la primera fila se almacenan en memoria
+contiguamente, seguidos por los elementos de la segunda fila, y as´ı sucesivamente.
+
+Reshape: reinterpretar bloques de memoria como si fueran otro tipo de arreglo.
+int matrix[3][4] = {
+    {1, 2, 3, 4},
+    {5, 6, 7, 8},
+    {9, 10, 11, 12}
+};
+
+// p apunta al int en la fila 0, columna 0
+int *p = &matrix[0][0];
+
+// reshape es un puntero a "arreglo de 2 enteros"
+int (*reshape)[2] = (int (*)[2]) p;
+
+reshape[0] → {1, 2}
+reshape[1] → {3, 4}
+reshape[2] → {5, 6}
+reshape[3] → {7, 8}
+reshape[4] → {9, 10}
+reshape[5] → {11, 12}
+
+
+#define VIDEO_COLS 80
+#define VIDEO_FILS 50
+// Cada posicion de memoria tiene 2 bytes
+typedef struct ca_s {
+    uint8_t c; // caracter
+    uint8_t a; // atributos
+} ca;
+void screen_draw_layout(void) {
+    // VIDEO es un puntero a la direcci´on de memoria del buffer de video
+    ca(*p)[VIDEO_COLS] = (ca(*)[VIDEO_COLS])VIDEO;
+    uint32_t f,c;
+    for (f = 0; f < VIDEO_FILS; f++) {
+        for (c = 0; c < VIDEO_COLS; c++) {
+            p[f][c].c = ' ';
+            p[f][c].a = 0x10;
+        }
+    }
+}
+Aca estamos inicializando p con la direccion de mem de VIDEO, osea, video es la 
+direccion donde empieza el buffer de video, los datos que aparezcan ahi van a ser 
+los que se impriman en pantalla, asiq, como primero, eso, le decis "Decime desde donde 
+empiezo a laburar", y tiene un casteo porq VIDEO es una direccion de mem, pero no sin 
+esto no sabemos como se interpreta, despeus del casteo, sabemos cuanto vale, y aparte 
+si le sumamos 1, lo va a transformar automaticamente en el tam que maneje.
+
+Punteros a funcion (what the actual fuck):(Alto orden?)
+
+Los punteros a funcion son punteros que apuntan a funciones en lugar de apuntar a datos.
+Esto permite pasar funciones como argumentos a otras funciones, lo que es util para implementar
+callbacks y otras tecnicas de programacion avanzada. Los punteros a funcion se declaran de la
+siguiente manera:
+
+tipo_retorno (*nombre_puntero)(tipo_parametro1, tipo_parametro2, ...);
+
+//puntero a una funci´on que toma dos enteros y devuelve un entero
+int (*suma)(int, int);
+
+// puntero a una funci´on que toma un puntero a char y devuelve void
+void (*callback)(char*);
+
+#include <stdio.h>
+void print_int(int x) {
+    printf("%d\n", x);
+}
+void pretty_print_int(int x) {
+    printf("Entero[%lu bits]: %d\n", sizeof(x)*8, x);
+}
+int main() {
+    void (*print)(int) = print_int;
+    print(42); // () desreferencia el puntero a funci´on
+    print = pretty_print_int;
+    print(3);
+}
+
+Volviendo al ejemplo de la lista enlazada, podemos lograr una mayor flexibilidad al usar
+punteros a funci´on para manejar los diferentes tipos de archivos. En lugar de tener un switch
+en la funcion listAddFirst, podemos definir un puntero a funci´on que apunte a la funci´on
+de copia correspondiente seg´un el tipo de archivo. Esto nos permite agregar nuevos tipos de
+archivos sin modificar el c´odigo existente.
+
+Cuando vamos a devolver punteros a funcion, es conveniente definir un typedef para el puntero
+a funcion.
+
+type.h (el header)
+typedef void* (*funcCopy_t)(void*); //Aca el nombre del typedf es funcCopy_t, un puntero a void y devuelve un puntero a void.
+typedef void (*funcRm_t)(void*);
+funcCopy_t getCopyFunction(type_t t); //Aca digo que el tipo de ret de getCopyFunction esfuncCpy 
+funcRm_t getRmFunction(type_t t);
+
+n->data = getCopyFunction(l->type)(data); Esto es una linea del listAddFirst, usa esto para conseguir 
+la funcion de copia del tipo de dato y al mismo tiempo realizar la copia, porq primer esta el llamado 
+de getCopyFunction(l->type), y eso devuelve un puntero a una funcion que toma un puntero, que va a ser 
+data, el tipo de este puntero es void* para poder ser generico y poder tomar tipos distintos de archivos,
+tonces, una  vez devuelta la funcion, el (data) hace que se ejecute la siguietne funcion qeu fue devuelta.
+
+// puntero a funcion que toma dos punteros a double y devuelve un puntero
+// a un array de 10 double
+
+// definimos primero f3_t, como un puntero a funcion tradicional
+typedef double DoubleArray10[10];
+typedef DoubleArray10* DoubleArray10Ptr;
+typedef DoubleArray10Ptr (*f3_t)(double*, double*);
+
+Debugging:
+GDB: debugger que usaremos para depurar nuestros programas en C o Assembler.
+Valgrind: herramienta que verifica el manejo correcto de los recursos del sistema por parte
+del codigo ejecutado.
+man: utilidad de la terminal de los sistemas UNIX que nos da facil acceso a la documentacion
+de las funciones de la libc, entre otras cosas.
+
+
+GDB: GNU Debugger
+
+'c' o "continue" -> Avanzamos hasta el siguiente breakpoint
+'s' o 'si' o "step into"  ->  para entrar a la funcion llamada.
+'n' o 'next' -> para avanzar a la siguietne linea (no se mete a funciones)
+"p  <var>" -> Para ver el valor de las variables en cada paso
+
+Para colocar un breakpoint usamos b <nombre del archivo>.c:<selector>
+donde el selector puede ser el nombre de una funcion del programa o una lınea especıfica del
+archivo y escribir c o continue para avanzar hasta el siguiente.
+Ej: b main.c:main, b main.c:nombreFuncion
+
+Valgrind: es una herramienta de depuracion que se usa paradetectar errores de mem.
+Se recomienda usar el flag "-g" pa incluir informacion de debugging y despues ejecutas
+en la consola valgrind ./<programa>. Mientras se ejecuta nos va mostrandoy registrando 
+info sobreleaks de mem,accesos a mem novalido y mas. Mensajes comunes:
+Invalid Read: Lectura de mem invalida, nos indica enque funcion, archivo y linea se produjo,
+el tamaño dela lectura, la direccion leida y si se encuentra en direcciones validas o no.
+
+Por ejemplo, en este caso la direccion leıda se encuentra inmediatamente despues
+(0 bytes after ) de un bloque valido de memoria de 4 bytes.
+
+==67560== Invalid read of size 4
+==67560== at 0x4012B8: main (debug2.c:68)
+==67560== Address 0x4a9b094 is 0 bytes after a block of size 4 allocd
+==67560== at 0x4848899: malloc (in /usr/libexec/valgrind/...)
+==67560== by 0x4012AF: main (debug2.c:67)
+
+Invalid Write: Intento de escritura sobre una direccion invalida, y indica la misma info que antes:
+
+==4725== Invalid write of size 4
+==4725== at 0x109187: main (main.c:9)
+==4725== Address 0x4a98068 is 0 bytes after a block of size 40 allocd
+==4725== at 0x484880F: malloc (vg_replace_malloc.c:431)
+==4725== by 0x109165: main (main.c:6)
+
+Conditional jump or move dependes on unitialise value(s): Un salto condicional (un if en C) o una 
+asignacion depende de una variable no inicializada, esto es que el valor de la var es basura, ya 
+que no selo escribio explicitamente. 
+
+==17726== Conditional jump or move depends on uninitialised value(s)
+==17726== at 0x401258: main (debug2.c:71)
+
+Segmentation fault: El SO detiene la operacion si el programa intenta  accedera mem que no le 
+corrsponde al proceso de ejecucion, como  por ej, la direccion 0x00(NULL), esa es del SO.
+A diferencia de un invalid read o write, que son dentro de la mem del programa, los seg fault
+son faltas que el SO no deja que pasen y no permiten que siga. Valgrind nos indcia la mem que 
+se intento acceder: 
+
+==5902== Process terminating with default action of signal 11 (SIGSEGV)
+==5902== Access not within mapped region at address 0x0
+==5902== at 0x1091A3: main (main.c:14)
+
+Memory leaks: Puede que todo haya salido biem.perohayamos usado mal la memoria igualmente, 
+esto pasa cuando no devolvimos todos los bytes que le pedimos al sistema, onda, al terminar 
+el programa no hay problema, porq el SO recupera esa mem, pero durante el proceso, si perdemos 
+esta, no puede usarlas ni el programa ni nadie mas,  por lo que podes agotar recursos.
+
+==17726== LEAK SUMMARY:
+==17726== definitely lost: 16 bytes in 1 blocks  -> No liberaste 16 bytes.
+==17726== indirectly lost: 0 bytes in 0 blocks
+==17726== possibly lost: 0 bytes in 0 blocks
+==17726== still reachable: 0 bytes in 0 blocks
+==17726== suppressed: 0 bytes in 0 blocks
+
+Tambien nos da info sobre le heap.
+
+==17726== HEAP SUMMARY:
+==17726== in use at exit: 16 bytes in 1 blocks
+==17726== total heap usage: 2 allocs, 1 frees, 1,040 bytes allocated
+
+Los mem leaks tienen tipos:
+Definitelyo Lost: Cuando se  reserva mem dinamica pero pierde todaslas referencias al 
+bloque antes de liberarlas, como no existe ningun puntero valido a esa pos, la memoria 
+se perdio definitivamente. Ej:
+
+int* array = (int*) malloc(sizeof(int)*10);
+array = NULL; //pierdo para siempre el puntero al bloque pedido
+
+Indirectly Lost: Perdimosun puntero a un bloque que tiene punteros a otros bloques.
+
+int** puntero_a_punteros = (int**) malloc(sizeof(int*) * 10);
+for(int i=0; i<10;i++){
+    puntero_a_punteros[i] = (int*) malloc(sizeof(int));
+    *puntero_a_punteros[i] = i;
+}
+free(puntero_a_punteros);
+// Liberamos el puntero al array y, por lo tanto, perdemos acceso
+// a los punteros dentro del mismo
+
+Possibly Lost: Cuando valgrind encuentra un puntero al interior de un array.
+El puntero pudo apuntar al principio del arreglo, pero en algun momento avanzo o 
+simplemente dejo de tener relacion alguna. Valgrind losmarca como dudosos porq 
+no puede determinar si todavia  existe un puntero valido para liberar este bloque.
+Ej:
+char *p = malloc(10); // Pedimos memoria
+
+p = p + 1; // Incrementamos el puntero
+
+abort(); // Abortamos la ejecucion del programa, simulando un crasheo
+
+p = p - 1; // No se puede asegurar que sea el puntero al inicio
+
+free(p); // Liberamos el bloque
+
+Still reachable: Termino el programa y quedo memoria reservada no liberada, pero
+hay un puntero valido a esta:
+
+int main() {
+int *p = malloc(sizeof(int) * 5);
+return 0;
+// Hay un puntero global a la memoria reservada sin liberar
+}
+
+MAN: Manual integrado en la terminal de linux, nos permite acceder a docu sobre funcionalidades
+de la terminal,syscalls delkernell, funciones de la libc, archivos de configuracion, etc.
+se peude hacer "man man" pa sacarle info jajaja. Cada cateogira o pagina de docu esta 
+numerada, 1:comandos de terminal, 2:syscalls, etc. nos interesa la pagina 3, que es la 
+docu de la libc. Si una entrada/input a consultar tiene apariciones en multiples paginas, 
+tenemos que aclararle la seccion:
+
+La info sale asi:
+
+NAME: Lista de nombres que corresonden a esa entrada, tambien agrupa funcioens relacionadas.
+
+SYNOPSIS: Tira las dependencias necesarias (headers), y la firma(param y tipo de dato de ret) que necesitan.
+
+DESCRIPTION: Explicaciones y motivasao de la funcion.
+
+RETURN VALUE: Que devuelve la funcion bienejecutada.
+
+ATTRIBUTES: Muestra atribyutos de seguridad y concurrencia de la funcion ej,   
+en strcpy, encima de la tabla dice "see attributes(7)", esta indicando que si 
+hacemos "man 7 attributes" podemos obtener la info sobre los terminos que lo componen.
+
+CONFORMING TO: Estandares (POSIX,ISO C,y mas) que cumple la implementacion actual.
+
+NOTES: Info extra.
+
+BUGS: En general no son bugs de implementacion, sino limitaciones o peligros del 
+diseño original, cambiar el comportamiendo romperia cosas, sirve para advertir 
+y recomendar cosas alternaivas, en strcpy, suele recomendar strncpy  o strlcopy en BSD.
+
+SEE ALSO: Info complementaria.
+
+COLOPHON: Tiene el paquete al que pertenece la pagina (man-pages en linux), el proyecto 
+de documentacion que la mantiene y un enlace a la pagina y la forma de 
+reportar bugs manualmente
+
+
+
+
+

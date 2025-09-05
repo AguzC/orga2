@@ -1,0 +1,2207 @@
+Recordatorio: 
+1.Todos los programas tienen que tener una main() function bien escrita, si hay 
+mas de un main, explota. main es el codigo que se ejecuta, por donde empieza, 
+funca igual que en java, sin main, el codigo no se ejecuta, TODO CODIGO QUE 
+QUERES EJECUTAR TIENE QUE TAR DENTRO DE main(), cuando se termina el main, se
+acaba el programa.
+2.Todas las declaraciones (instrucciones/statement) terminan con punto y coma.
+3.Comentarios--> // funca bien en cualquier lado, de una sola linea.
+y bloque de comentarios /* contenido */
+
+---Preprocessor directives/directivas de preprocesador:
+    El preprocesador es un programa que forma parte del compilador y prepara o modifica el 
+    codigo fuente antes de pasarlo a binario basandose en las lineas de codigo del principio
+    que comienzan con "#". Estas lineas de codigo se llaman directivas de preprocesador, 
+    (Hay directivas de preprocesador y directivas, como el "using")van una por linea, sin
+    punto y coma, se pueden poner en una misma linea si se pone "\" al final
+    de una y asi. Ej:
+
+    #include <iostream>
+    #include <limits>
+
+    Cuando el preprocesador lee el include, este reemplaza esa linea por todo el contenido 
+    que tenga esa libreria, y lo mismo dentro, si la libreria hace include, funcan de la 
+    misma forma recursiva, hasta llegar a tener todo el codigo sin los inclues.
+
+    Aca estamos diciendo que queremos usar esas librerias, iostream permite leer y escribir 
+    por la consola. std::cout sale de esa libreria, sin esta, esto explota.
+
+    Una vez que el preprocesador termino, queda un arhcivo del tipo translation unit, o 
+    compilation unit, que es el input de donde sale el archivo .obj.
+
+---Headers: 
+    En los programas de C++, aparte de los archivos .cpp, tambien
+    hay arhcivos .h o .hpp, uqe son Header files/encabezado, y en general 
+    se usan para progagar una serie de forward declarations a un archivo
+    de codigo, de esta forma, podemos importarlas a donde querramos sin
+    escribir muchas veces el codigo. Cuando usamos el #include, estamos
+    pidiendole al preprocesador que copie todo el contenido del archivo
+    que incluye a nuestro archivo.
+    Cuando hacemos un header, suelen cumplir que, si queremos importar
+    funciones de un archivo en especifico, se suele llamar igual que el
+    archivo de donde voy a exportarlas:
+    ej: archivo math.cpp --> El header se llamara math.h
+
+    Escribir un header se realiza en 2 pasos:
+    1. Header guard, explicado abajo.
+
+    2. El contenido del archivo header, que deben ser forward declaration
+    de toods los identificadores que queremos que vean otros archivos.
+
+    Header guard: Son directivas condicionales de compilacion que evitan
+    colision de nombres con otros headers, en general, si por error incluis 
+    2 veces el mismo header, tonces se puede romper todo, asique para eso,
+    la estructura de un header siempre tiene que tener un header guard, que 
+    basicamente se fija si fue definido o no antes usando #ifndef, tonces,
+    TODOS LOS HEADERS TIENEN QUE TENER ESTA ESTRUCTURA:
+    IMPORTANTE:
+    #ifndef NOMBRE_DEL_HEADER_H //El nombre y quizas alguna cosa mas para   
+    #define NOMBRE_DEL_HEADER_H //que no pueda chocar con ningun otro header
+
+    // Contenido del header
+
+    #endif
+
+    Segunda opcion de header guard--> #pragma once, es una directiva 
+    pragma, que en general dependen de la implementacion (compilador 
+    y sistema operativo), pero la tienen la mayorai de los compiladores,
+    asique esta directiva especifca es buena recomendasao, aparte mas corto,
+    solo hay un caso donde no funcion que es cuando el header esta repetido
+    en otros archivos del sistema, ahi falla, pragma once, en ese caso el 
+    metodo antiguo es mejor.
+
+    Entonces, con el uso de macros y condicionales en los headers, logramos
+    que si un header ya fue definido anteriormente, no se defina de nuevo.
+
+    Ahora para poder usar las funciones que declaramos dentro del header
+    de un archivo, hacemos #include "nombreArchivo.h" 
+    IMPORTANTE: va entre comillas el nombre, no <>, cuando usas "<>" en 
+    el include, le decis al preprocesador que busque un header que no fue
+    escrito por nosotros, asique lo va a buscar en los "include directories",
+    que son un directorio que contiene los archivos header del compilador y/o
+    sistema operativo, en comparacion, si usamos "" (comillas dobles), le 
+    decimos que si lo escribimos nosotros y se va a fijar primero en el 
+    directorio donde esten nuestros archivos, y si no lo encuentra ahi, se
+    va a los "include directories"
+    IMPORTANTE: Los archivos .cpp incluyen a sus .h, ayuda a ver si hay
+    errores. 
+    IMPORTANTE: No hagas #include de .cpp, podes romper todo.
+    Extra: Por cuestiones historicas, tambien se puede incluir archivos
+    sin el .h, asique, todo lo que sea de la biblioteca estandar se usa
+    sin h, y todo lo que no, con h. colta.
+
+    Incluir header de otros directorios: Le decimos al compilador
+    o IDE que tengo unos header files en algun lado, para que los 
+    busque ahi cuando no los encuetnre en nuestro directorio, esto 
+    se hace configurando un include path o search directory en los
+    ajustes del proyecto, para visual, es agregar 
+    "-I/source/includes", en task.json --> "Args"
+    (La verdad no logre que funque, asiq....)
+
+    Cuando un header usa otro header, el otro header usado se suele 
+    llamar transitive includes, porque estan implicitamente incluidos
+    dentro del header que incluiste explicitamente.
+    IMPORTANTE: No uses contenido de un header transitivo, si vas a 
+    usar algo de este, incluido de una explicitamente, porque no sabes 
+    que peude cambiar y romper todo.
+
+    IMPORTANTE: Orden de headers:
+    1. El header del mismo archivo, de tener uno.
+    2. Header del mismo proyecto, hechos por vos.
+    3. Librerias de terceros.
+    4. Libreria estandar.
+
+    Y ordenados alfabeticamente en casa inciso.
+    IMPORTANTE: Los templaste de funciones se definen dentro del header.
+
+---variables: 
+    Objetos con un identificador/nombre que guardan un valor en memoria, 
+    Cuando una variable no es inicializada (no se le da un valor cuando se define),
+    el valor por default es lo que sea que haya en esa posicion de memoria que tenga
+    reservada. Todo por un tema de optimizacion de C, mejor no inicializar al dope.
+    PELIGROSO: Puede pasar que, al no inicializar una variable, quizas la usas y tiene
+    un valor basura de la posicion de memoria en la que esta, pero todo depende del compilador,
+    porque puede resultar en un comportamiento indefinido, no consistente y complicado de 
+    solucionar.
+    IMPORTANTE: Siempre inicializa tus variables para no hacer cagada.
+
+    DIFERENCIA IMPORTANTE: un objeto es una region de memoria que puede almacenar
+    un valor, mientras que una variable es un objeto con nombre. Para definirlos se usa 
+    la declaracion de definicion como: int x; , aca basicamente decimos que x es un entero, 
+    todavia no le asignamos nada, pero el compilador ya va a reservar el espacio en memoria
+    para un int. El proceso  de reservar memoria para un objeto se llama alocacion, una vez 
+    que pasa, el objeto fue creado y esta listo para usarse. Se pueden definir variables del
+    mismo tipo en una sola linea pero no de distintos:
+
+    int a, b, c; -->Defino 3 enteros a ,b y c.
+    double d; --> Defino un entero double d.
+    a = 5; --> Aca asigno lo que quiero.
+
+    Por ahora con numeros se puede inicializar asi int a = 5; y esta todo bien,
+    pero tambien hay algo que se llama inicializar, que es distinto, 
+    int a {5}; que equivale a lo de arriba, cuando no hay inicilizador, osea que,
+    no se le asigna valor, se llama inicializacion por default, hay distintos tipos
+    de inicializacion:
+
+    int b = 5;     --> copy-initialization (initial value after equals sign)
+    es la forma heredada de C y quizas menos eficiente que las modernas.
+    IMPORTANTE: el "=" pasa el valor por copia.
+    int c ( 6 );   --> direct-initialization (initial value in parenthesis)
+    usada para para inicializar eficientemente objetos complejos con clases
+    de tipos y etc, quedo medio vieja a comparacion de las modernas.
+
+    La inicializacion directa es confusa con funciones, ej:
+    int x(); --> Es una funcion x.
+    int x(0) --> Es la inicializacion directa de x en 0.
+    T(5); --> Llamada de funcion si T es funcion, inicializacion
+    directa si T es un objeto. Medio choto el tema.
+
+    IMPORTANTE: Cuando una variable es inicializada con llaves "{}",
+    significa que estamos creando y inicializando un objeto.
+
+    // Modern initialization forms (list):
+    int d { 7 };   --> direct-list-initialization (initial value in braces), 
+    tambien se puede llamara uniform initializacion o brace initialization,
+    basicamente es como las anteriores pero cambia la sintaxis para no 
+    generar confusion, aparte deja inicializar objetos con listas de valores.
+
+    Dato: Todas las inicilizaciones permiten multiples en la misma linea
+    aunque no sea para nada recomendable porque es choto de leer y puede
+    llevar a errores:
+
+    int a = 5, b = 6;          // copy-initialization
+    int c ( 7 ), d ( 8 );      // direct-initialization
+    int e { 9 }, f { 10 };     // direct-list-initialization
+    int i {}, j {};            // value-initialization
+
+
+    int e {};      --> value-initialization (empty braces), en la mayoria de 
+    los casos, inicializar asi va a inicializar la variable en 0 o vacio
+    dependiendo del caso,y se llama zero initialization
+
+    Caso para usar zero initialization en vez de direct inicializacion
+    con {0} : Si no necesitas explicitamente el 0...
+
+    IMPORTANTISIMO: La inicializacion normal (no de list), hace conversion
+    estrecha/narrowing conversion, que te puede cambiar el tipo de dato si
+    por ej: int a = 4.5; --> Ya que el tipo es int y 4.5 es fraccionario,
+    el compilador lo toma como 4, y puede o no avisar sobre ese hecho, 
+    y esta conversion tambien pasa en la asignacion por copia,
+    a = 56.6;
+
+    IMPORTANTISIMO: Si inicializas un Float asi: float a {5.3};, te da error
+    de compilacion porque cuando escribis un literal(constante sin nombre) con
+    punto y coma, el compilador lo toma como double. Por eso hay que usar el 
+    sufijo f--> float a {5.3f}  --> Todo bien aca, aclaras que 5.3 es un float.
+
+    IMPORTANTE: Cuando inicializas o asignas un valor numerico a un char, 
+    este se fija la tabla ASCII y lo pasa al simbolo correspondiente:
+    char letra {}; --> letra = 97; --> Si printeas, da "a".
+
+    EXTRA: Las secuencias de caracteres que empiezan con "\" se llaman 
+    secuencias de escape, ej: "\n" que es un salto de linea o otra 
+    es "\t" que mete una indentacion horizontal. 
+
+    ---Tipos de datos: En C++ las posiciones de memoria laburan en bytes (8 bits)
+    Extra: Los strings son compuestos y se sacan de std.
+    IMPORTANTE: El tamaño de los tipos de datos puede variar segun la implementacion
+    (compilador y sistema operativo), los valores que estan aca abajo pueden ser 
+    acertados en general, pero hay que tener cuidado que pueden variar, el char
+    en algunos lugares ocupa 1 byte y en otros 4 porque temas de mem. Tambien 
+    hay un tamaño minimo, que es mejor asumirlo para maxima portabilidad, en este 
+    caso, son los tamaños maximos los que puse.
+
+        Por la configuracion del compilador en nuestro caso, 
+    si tenemos variables sin usar, no nos va a dejar compilar tranquilos,
+    pero digamos que tampoco queremos ir comentando o sacando las variables
+    mietnras, tonces tenemos el atributo [[maybe_unused]] que le dice al 
+    compilador que ta bien si no se usa una variable,ej:
+
+    [[maybe_unused]] double pi { 3.14159 };  // Don't complain if pi is unused
+    [[maybe_unused]] double gravity { 9.8 }; // Don't complain if gravity is unused
+    [[maybe_unused]] double phi { 1.61803 }; // Don't complain if phi is unused
+
+    Las variables tiene scope por bloques dentro de un mismo archivo, pueden estar
+    o en el scope global, alcanzado desde cualquier lado, o dentro de un bloque de 
+    scope, o namespace, o header, hay muchos scopes distintos. Las variables globales
+    se declaran abajo de las directivas de preprocesador, podes declarar ahi y ya estan
+    para llamarlas en cualquier lugar del archivo, se recomienda, de usarlas, definirlas
+    dentro de un namespace. Este tipo de variables tiene una duracion estatica, osea, 
+    mueren cuando termina el programa, por lo que existen ahi ocupando espacio, y tambien
+    es preferible que las globales SOLO SEAN CONSTANTES, porque son malvadas sino.
+
+
+    Las variables locales tienen una propiedad llamada linkage/enlace, que determian 
+    si una declaracion de un mismo identificar en un scope distinto se refiere al 
+    mismo objeto, las var locales no tienen linkage, cada declaracion de un identificador 
+    sin linkage refiere a un unico objeto o funcion. En general es una muy buena practica 
+    crear variables en el scope mas limitado posible, osea, si un for necesita una var 
+    para x cosa, si se puede hacer solo dentro del for mejor hacerlo adentro asi muere 
+    cuando termina que tenerla afuera y siga ahi. Las variables locales pueden tener 
+    la palabra clave static, esta explicado abajo en static y linkage.
+
+---Tipos fundamentales:
+
+    -Punto flotante/Coma flotante:
+    float                                                                --> 4 bytes
+    double                                                               --> 8 bytes
+    long double	                                                         --> 8,12 o 16 bytes
+
+    -bool	--> De toda la vida, cuenta como integral                    --> 1 byte
+
+    -Chars:
+    char    --> Cualquier ASCII o ISO-8859 o otros, cuenta como integral --> 1 byte
+    wchar_t --> El _t se usa para indicar que algo es un tipo de dato.   --> 2 o 4 bytes
+    char8_t         (C++20)                                              --> 1 byte
+    char16_t        (C++11)                                              --> 2 byte
+    char32_t        (C++11)	                                             --> 4 byte
+
+    -Enteros: Tipos integral,
+    short int                                                            --> 2 bytes
+    int                                                                  --> 4 bytes
+    long int                                                             --> 4 o 8 bytes
+    long long int (C++11)	                                             --> 8 bytes
+
+    -Null:
+    std::nullptr_t (C++11)	Null Pointer	a null pointer	nullptr      --> 4 o 8 bytes.
+
+    -void	Void	no type	n/a
+
+    Los int tiene modificador signed y unsigned (con y sin signo), y los unsigned
+    cuando tienen overflow (se van de represetacion), hacen la siguiente cuenta:
+    valor actual MOD 2 elevado a los bits + 1, y deja ese resultado.
+    Ej: tengo un 280 cuando estoy con unsigned short, entonces hace:
+    280 mod 255 = 24 --> GOD know why.
+
+    El void/vacio, es un tipo de dato incompleto, osea, declarado pero no 
+    definido, el compilador sabe que existen pero no sabe cuanta memoria 
+    reservarles, y no pueden ser instanciados: void a; --> explota.
+
+    EXTRA: Si queres ver cuanto ocupan las cosas en tu implementacion actual, esta 
+    la funcion sizeOf(dato), no funca para objetos en mem dinamica, y lo que devuelve
+    es de tipo std::size_t, que depende de la implementacion. Aca algo de
+    codigo:
+    #include <iomanip> // for std::setw (which sets the width of the subsequent output)
+    #include <iostream>
+
+
+    int main()
+    {
+        std::cout << std::left; // left justify output
+        std::cout << std::setw(16) << "bool:" << sizeof(bool) << " bytes\n";
+        std::cout << std::setw(16) << "char:" << sizeof(char) << " bytes\n";
+        std::cout << std::setw(16) << "short:" << sizeof(short) << " bytes\n";
+        std::cout << std::setw(16) << "int:" << sizeof(int) << " bytes\n";
+        std::cout << std::setw(16) << "long:" << sizeof(long) << " bytes\n";
+        std::cout << std::setw(16) << "long long:" << sizeof(long long) << " bytes\n";
+        std::cout << std::setw(16) << "float:" << sizeof(float) << " bytes\n";
+        std::cout << std::setw(16) << "double:" << sizeof(double) << " bytes\n";
+        std::cout << std::setw(16) << "long double:" << sizeof(long double) << " bytes\n";
+
+        return 0;
+    }
+
+    EXTRA: A los enteros los podes elegir signed o unsigned como modificar adelante,
+    de por si, son signed, asique no tiene sentido hacerlo. Todos los numeros con
+    signo, osea signed, estan en complemento a dos, no signo magnitud, porque este
+    tiene +0 y -0 lo cual no tiene sentido.
+
+    EXTRA: El overflow de enteros no esta definido (cuando un numero se pasa de 
+    su rango de representacion), depende de la implementacion si da la vuelta,
+    pasar de 127 a -127 o si hace otra cosa.
+
+    EXTRA: Puede pasar que un CPU (microprocesador con X arquitectura, ej: RISCV), un
+    tipo de dato este mas optimizado que otro, y digamos que en vez de usar int pasas 
+    todo a short, dependiendo el caso, quizas corre mas lento porque el cpu optimizo 
+    el int.
+
+    IMPORTANTE: Ya que por cuestiones historias, los tipos de enteros de arriba pueden
+    variar de plataforma a plataforma, en C++11 se añadio un conjunto de enteros con 
+    un tamaño especfico e invariable, se llaman fixed-width integers/enteros con tamaño
+    acotado, se necesita incluir <cstdint> en el header:
+
+    std::int8_t	1 byte signed	-128 to 127	Treated like a signed char on many systems. See note below.
+    std::uint8_t	1 byte unsigned	0 to 255	Treated like an unsigned char on many systems. See note below.
+    std::int16_t	2 byte signed	-32,768 to 32,767	
+    std::uint16_t	2 byte unsigned	0 to 65,535	
+    std::int32_t	4 byte signed	-2,147,483,648 to 2,147,483,647	
+    std::uint32_t	4 byte unsigned	0 to 4,294,967,295	
+    std::int64_t	8 byte signed	-9,223,372,036,854,775,808 to 9,223,372,036,854,775,807	
+    std::uint64_t	8 byte unsigned	0 to 18,446,744,073,709,551,615
+
+    De llegar a ser necesarios, estos proveen exactitud, excepto por los enteros 
+    de 8 bit, que por razones implementativas, en algunos sistemas se toman como
+    signed char y unsigned char.(La vida,qcy, c++ en todo su esplendor), aparte
+    pueden ser mas lentos por temas de optimizacion del cpu, pero es un "Pueden".
+
+    EXTRA: std::int_fast#_t y std::uint_fast#_t, proveen el tipo de entero mas 
+    rapido de al menos # bits (reemplazar # por bits ahi y en los nombres), significando
+    los integrales que pueden ser procesados mas rapido por el cpu. Detectan el 
+    tipo de entero que la cpu procesa mas rapido y laburan con eso, por ejemplo
+    si una cpu esta optimizada para 64 bits, tonces int_fast32_t va a ser de 
+    64 bits. MUY NICHO.
+
+    EXTRA: std::int_least#_t and std::uint_least#_t, proveen el tipo de entero 
+    con o sin signo con un minimo de # bits, se usa para tener al menos esa 
+    cantidad de bits, por ejemplo una maquina que no tiene tipo 16 bits, 
+    tonces este te dara 32....., como dije arriba, MUY DE NICHO.
+
+    EXTRA: Notacion cientifica, por un lado, viene bien tener esta igualdad:
+    5.9722 x 10²⁴ = 5.9722e24 y 0.05 = 5e-2 = 5 / 10², ahora con floating,
+    usan un sufijo f, ej: 234f o 214.2134f, el sufijo indica que es de punto
+    flotante si no fue antes aclarado.
+
+    EXTRA: Los strings no son un tipo fundamental por cuestiones historicas,
+    y en C++ los strings literal (escribir texto de una), siempre tienen un 
+    caracter extra que se llama "null terminator", que es '\0', codigo ASCII 0,
+    que indica que un string termina. Estos strings son creados al principio del
+    programa y estan garantizados a existir durante todo el programa.
+
+---Tipos compuestos:
+
+    -Strings:
+        #include <string> --> std::string nombreVar {"Lo que quieras"}; cuando no 
+        tiene mas espacio, pide memoria adicinal en tiempo de ejecucion, usando 
+        algo de memoria dinamica, por lo que es flexible pero mas lento.
+        Para guardar un string de input hay que hacer una boludes molesta, ya que el 
+        std::cin toma solo palabras hasta que aparezca el espacio, si pones dos palabras,
+        va a tomar la primera y la segunda queda para otro input. Para girar alrededor 
+        de esto podes hacer:
+
+        std::getline(std::cin >> std::ws, var); 
+
+        getline toma el input y la variable donde la encajas como argumentos, el input 
+        es el std::cin, y tiene >> std::ws que se usa para ignorar unas cosas de texto,
+        asique basicamente asi inputeas texto.
+        Tiene el var.length(), y en la docu puede aparecer std::string::length() porque 
+        es una funcion de un objeto.
+
+        Uso moderno: <string_view> --> std::string_view permite acceder solo para lectura
+        a un string que ya existe SIN HACER UNA COPIA, si no vas a modificar un string, esta 
+        bueno hacerlo asi. Si tenes funciones que no buscan modificar el string, es mejor pasar 
+        como parametro  de tipo string_view, asi evita hacer una copia costosa, solo mira el 
+        string sin ocupar mas memoria de la necesaria.
+
+        Tiene funciones como:
+        var.remove_prefix() y var.remove_suffix(), lo cual eliminan el primer o ultimo caracter,
+        modifican el string que ve.
+
+        La diferencia entre string y string_view es que string copia el valor con el que se
+        inicializo en memoria, ocupa la memoria y realiza una copia de lo que ya tenes ahi a 
+        mano, gasta espacio y cuando se elimina libera ese espacio, pero es modificable, podes
+        hacer lo que quieras con ese cacho de memoria que es un string, mientras que string_view 
+        es "ver" un string, tenes el string que te llego de alguna forma, inputeado, sacado de 
+        algun lado,qcy, en vez de hacer una copia del mismo para guardarlo en memoria, vos solo 
+        miras ese que te dieron, no es modificable, no ves la variable, solo ves el string, el 
+        valor en si, de esta forma, hay mucho menos gasto de memoria y cuando destruis el 
+        string_view, el objeto siendo visto no es afectado. IMPORTANTE: Si el objeto siendo
+        visto es destruido, es comportamiendo indefinido. MUY IMPORTANTE: No tomes para 
+        string_view un return value de una funcion, los return value son valores temporales que 
+        mueren despues de ser usados, y como sv no hace copias, se lo asignas, lo mira, pero 
+        despues muere el return value, asique no sabe que esta mirando sv. Hay que tenerle 
+        mucho cuidado porque casi todo realiza copias para asignar y ase, pero este al no hacerlo,
+        hace uqe tengas que tener mucho cuidado a ver si estas viendo algo correcto, sino la 
+        sobreescribiste mal,etc.
+
+---Expresiones:
+    Cualquier combinacion de literals, variables, operadores y llamados a funciones 
+    que producen un solo valor, eso es una expresion, las expresiones en c++ tienen 
+    2 propiedades, tipo y categoria de valor.
+
+    El tipo de una expresion es el tipo al que se resuelve una expresion:
+        auto v1 { 12 / 4 }; // int / int => int es el tipo
+        auto v2 { 12.0 / 4 }; // double / int => double es el tipo
+    y el tipo de una funcion tiene que ser deducible en tiempo de compilacion.
+
+    La categoria de valor de una expresion indica si una expresion se resuelve a 
+    un valor, funcion o objeto de algun tipo. Hay 5 categorias de valores, las primeras
+    son lvalue y rvalue, y despues de  C++11 aparecieron glvalue, prvalue y xvalue, aca
+    solo chusmeamos las primeras 2.
+
+    lvalue o left value es una expresion que se evalua a un objeto identificable o una 
+    funcion. Pueden ser o no modificables segun si son o no const.
+
+    Basicamente: Lvalue expressions se evaluan a objetos identificables.
+                Rvalue expressions se evaluan a un valor.
+    Tambien podes pensarlas como:
+                Lvalue expressions perduran mas alla de la expresion.
+                Rvalue expressions no lo hacen.
+    O ,as util todavia:
+                Lvalue se refiere a una posicion de mem que identifica a un objecto
+                Rvalue se refiere a un valor de data guardado en una direccion.
+
+    Primero: Entidad --> Es un objeto o funcion
+             Identity--> Forma de reconocer algo.
+
+    Una entidad con identidad es un objeto o funcion que puede ser diferenciado de 
+    otras entidades. Estas son accedidas pueden ser accedidas por un identificador,
+    referencia o un puntero.
+
+    int x { 5 }; // 5 is an Rvalue expression
+    int y { x }; // x is an Lvalue expression
+    int y { x }; // x is a modifiable lvalue expression
+    const double e { d }; // d is a non-modifiable lvalue expression
+
+    rvalue o right value: Es una expresion que no es un lvalue, estas se evaluan a 
+    un valor, casos comunes son con literals o valores de retorno de funciones y 
+    operadores que devuelven por valor.
+
+        int x{ 5 }; // 5 is an rvalue expression
+        const double d{ 1.2 }; // 1.2 is an rvalue expression
+
+        int y { x }; // x is a modifiable lvalue expression
+        const double e { d }; // d is a non-modifiable lvalue expression
+        int z { return5() }; // return5() is an rvalue expression (since the result is returned by value)
+
+        int w { x + 1 }; // x + 1 is an rvalue expression
+        int q { static_cast<int>(d) }; // the result of static casting d to an int is an rvalue expression
+
+    los ultimos 3 son rvalue porque esas expresiones producen valores temporales que 
+    no son objetos identificables.
+
+    Tonces, los operadores esperan que sus operandos sean rvalues, como el "+".
+    El operador asignacion requiere que el operador de la izquierda sea un 
+    lvalue modificable, por eso si ponemos 5 = x, 5 no es un lvalue.
+
+    Conversion de lvalue a rvalue: Con la misma idea de arriba, si por ej 
+    hacemos:
+    int x{ 1 };
+    int y{ 2 };
+    x = y; // y is not an rvalue, but this is legal
+    Es legal porque hay conversion de lvalue a rvalue, siempre que se espere 
+    un rvalue, se puede poner un lvalue y va a haber conversion a rvalue, se 
+    van a evaluar el lvalue y se va a pasar a un rvalue asi, pero en el caso 
+    contrario, no se puede poner un rvalue donde se espera un lvalue.
+
+---Referencia y valor:
+    En C++, una referencia es un alias a un objeto existente, una vez definida la 
+    referencia, cualquier operacion en la referencia se aplica al objeto referenciado,
+    asiq se puede usar para leer o modificar el objeto referenciado. C++ moderno 
+    tiene 2 tipos de referencia, lvalue references y rvalue references:
+
+    lvalue references: Antes llamadas solamente referencias prior c++11, es un alias 
+    a un lvalue, y se usa el "&" para indicar en el tipo que se trata de una referencia,
+    una referencia tiene que ser del mismo tipo que el objeto referenciado:
+
+    // regular types
+    int        // a normal int type (not an reference)
+    int&       // an lvalue reference to an int object
+    const int& // const int reference, no puede ser modificada
+    double&    // an lvalue reference to a double object
+    const int& // an lvalue reference to a const int object
+
+
+        int x { 5 };    // x is a normal integer variable
+        int& ref { x }; // ref is an lvalue reference variable that can now be used as an alias for variable x
+
+        std::cout << x << '\n';  // print the value of x (5)
+        std::cout << ref << '\n'; // print the value of x via ref (5)
+
+    Solo por si te olvidas, cuando pasas por referencia, es tener 2 accesos al mismo 
+    objeto, si uno de los alias modifica al objeto, cambia para ambos, mientras que si 
+    haces a = 5 y b = a, si modificas a "b", no modificas a "a", es otro objeto.
+
+    Cuando inicializas una referencia (int& a {f}), tenes que hacer que tenga el mismo tipo
+    que vas a referenciar, se puede romper o hacer quizas alguna conversion en el medio.
+
+    IMPORTANTISIMOMISIMOMSSSS --> NO PODES REASIGNAR UNA REFERENCIA UNA VEZ INICIALIZADA,
+    SI UNA REF ESTA REFERENCIANDO A UN OBJETO, NO PODES HACER QUE CAMBIE LA REFERENCIA,
+    ASIQ SI LE ASGINAS OTRO VALOR O ALGO A LA REFERENCIA, ESTAS MODIFICANDO AL OBJETO 
+    REFERENCIADO, en el caso donde tenes:
+    int a {5};
+    int d {22};
+    int& b {a}; --> B ya ta referenciando a A
+    b = d; --> NO CAMBIA LA REFERENCIA, B SIGUE REFERENCIANDO A a, modifica el valor de a, 
+    hace que el valor de a = d, la referencia se mantiene y solo cambia el valor por el que 
+    se le asigno.
+
+    Tambien si eliminas una referencia sin matar al objeto esta todo bien, pero si matas 
+    al objeto y luego a la referencia esta todo mal.
+
+    Las referencias no son objetos, no es necesaria que exista o ocupe espacio, si se puede, 
+    el coompilador va a reemplazar todas las apariciones de esta por el referenciado, y no 
+    se peude tener una referencia a otra referencia     
+
+    Podes asignar una referencia constante a una variable no constante, asi, si algo modifica 
+    a la variable directamente, todo bien, pero si algo quiere modificar a la referencia constant,
+    lo saca cagando.
+
+    Pasando cosas por referencia te ahorras tener que crear objetos pesados a una funcion, al hacer 
+    eso, esta no tiene que crear la copia para usarla:
+
+    void printValue(std::string& y) // type changed to std::string&, implica un paso por ref
+    {
+        std::cout << y << '\n';
+    }
+
+    Tambien podes pasar variables por referencia como constantes, lo que significa que si pasas 
+    una variable por referencia, esta no puede ser modificada durante la funcion, solo leida, y 
+    al ser por referencia, te ahorras hacer una copia del objeto:
+
+    void printRef(const int& y) // y is a const reference
+    {
+        std::cout << y << '\n';
+    }
+
+    Al mismo tiempo, esto pasa con lo que pueda devolver una funcion, hay muchos casos donde se 
+    puede evitar crear un nuevo objeto solo referenciando uno ya existente, teniendo en cuenta que 
+    quizas esta definido en algun lado o algo.
+
+---Punteros:
+    Bueno, primero, el operador "&" como address-of sirve para devolver la direccion 
+    de memoria de la variable, ej: sea una variable declarada a, si printeas &a, te 
+    devuelve la direccion de mem donde esta, si es un objeto grande, te devuelve la 
+    direccion donde empieza, pero no es un literal, no es un tipo de dato numerico de una,
+    sino que es el objeto puntero.
+
+    Despues tenes el operador "*", que es el dereference operator, que realiza la inversa 
+    del address-of, te devuelve el valor de una direccion de mem:
+    ej: si printeas *&a (siendo a una var declarada), entonces, "&" te da la direccion de mem,
+    y despues el "*" te devuelve lo que haya en esa direccion.
+
+    char a {'6'};
+    std::cout << *&a << "\n"; --> printea 6.
+
+    Ahora si, punteros, es un objeto que mantiene la direccion de memoria de una variable como su 
+    valor, esto nos permite guardar la direccion de otro objeto para usarla. Los tipos de datos 
+    que son un puntero son "pointer type", y se definen poniendo un "*" justo despues del tipo
+    de dato -->  int*; // a pointer to an int value (holds the address of an integer value)
+
+    Cuando declaras un puntero, es como las variables, por default no estan inicializados, asi que 
+    tiene una direccion basura, se llama wild pointers, siempre inicializa un puntero.
+    int* puntero1; --> Sin inicializar, 0 uso.
+    int* puntero2 {}; --> Null pointer.
+    int* puntero3 {&x}; --> Puntero inicializado con una direcc.
+
+    Ya que los punteros son direcciones de memoria, se les tiene que asignar una como tal, para eso
+    se usa el operador address-of "&" junto con la variable. De esta forma, tenes la direccion guardada 
+    en el puntero, y si queres usar el valor de la variable con el puntero, usas el dereference operator "*",
+    que te da el valor de esa direccion.
+ 
+    La asignacion con punteros se usa para 2 cosas:
+    1. Cambiar el lugar al que apunta (la direccion de mem).
+    2. Cambiar el valor al que se esta apuntando apuntando hacia otro.
+
+
+    ej del 1:
+    int x{ 5 };
+    int* ptr{ &x } --> Un puntero de x 
+    int b {10};
+    ptr = &b;      --> Ahora el puntero cambio de direcc, ya no apunta a x, sino a b.
+
+    ej del 2:
+    int x{ 5 };
+    int* ptr{ &x }; --> Un puntero de x 
+    Si printeo "x" y "*ptr", ambos dan 5 hasta aca.
+    *ptr = 10; --> Asigno un nuevo valor a la dereferencia del puntero, basicamente le digo 
+    que el valor guardado en esa posicion de memoria tiene que ser 10. Ahora, si printeo 
+    "x" y "*ptr", en ambos casos da 10, funca como una referencia.
+
+    Resumencito, asignar un puntero sin "*" es cambiar la direccion de mem, mientras que asignar 
+    un puntero con "*" es cambiar el valor almacenado en esa direccion de mem.
+
+    Diferencias con referencias: 
+    -Las referencias NO son objetos, los punteros si.
+    -Las referencias no pueden cambiar a lo que referencian, los punteros si pueden apuntar a otro cosa.
+    -Las referencias SI o SI tienen que estar referenciando un objeto, mientras que un puntero puede ser null jaja.
+    -Las referencias son son seguras, los punteros no jajaja.
+
+    Al ser un tipo de dato, los punteros siempre pesan lo mismo, que suele ser 32 o 64 bits dependiendo de la arquitectura,
+    porq es todo lo que necesitan para acceder a una direccion de mem.
+
+    **IMPORTANTISIMOMISIMOMSSSS: Siempre tener cuidado de a que apuntas, porque podes destruir un objeto al que apuntaste
+    y el puntero seguir vivo, haciendo que este apunte a algo que no existe y rompes todo, en este caso, si sabes que pasa,
+    podes o arreglar y evitarlo, o asignarle un nuevo objeto al puntero.
+
+    void pointer: void* a;  Son punteros sin tipo definido, generico, no te deja hacer operaciones aritmeticas e punteros
+    o dereferenciarlo. Se pueden convertir en cualquier otro puntero de forma implicita, un uso particular copado seria 
+    una funcion que recibe como parametron un array, si queres que sea omnitipo, podes hacer que el argumento del array
+    sea void* array, que en realidad, C lo pasa como un puntero al primer elemento, y ahora el puntero se va a castear 
+    solito al tipo del primer elemento, dconviertiendose en un pntero del array que me pasen.
+
+    Nullpointer: Exactamente como suena, no apunta a nada, y se puede inicializar de 2 formas como minimo, dejando el campo 
+    de valor vacio --> int* puntero {}; o usando el "nullptr", que es una palabra clave que representa el valor null pointer,
+    int* pnuterito {nullptr};, es exactamente lo mismo, y tambien de esta forma podes dejar de apuntarle a algo. 
+    **IMPORTANTE: Podes checkear un null pointer con el nullptr usando una comparacion, puntero == nullptr.
+
+
+    Segmentation Fault (core dumped): Intentaste acceder a un segmento de memoria al cual n tenias acceso, la memoria ta 
+    se divide en segmento que se los da a cada proceo y asi funca.
+
+    -Puntero a constante, asi no mas, no podes asignar un puntero a una variable constante porque significaria poder 
+    referenciarla y cambiar el valor, si queres apuntar a una var const, tenes que hacer que el puntero tambien sea const;
+    const int x{ 5 };
+    const int* ptr { &x }; // ptr points to const int x
+    Hace que el puntero no pueda dereferenciar en una asignacion, no podes modificar el valor de la direccion de mem.
+    Y podes hacer que el puntero sea const asi para no modificarlo en su uso.
+    Despues tenemos el const despues de int*, osea, int* const, que hace que el puntero en si sea constante, lo cual 
+    hace que no puedas cambiar la direccion de memoria asignada.
+    const int x{ 5 };
+    int* const ptr { &x }; // ptr points to int x y no puede cambiar la direcc de memoria.
+    Y si mezclas ambas, tenes esta cosa fea:
+    const int x{ 5 };
+    const int* const ptr { &x }; 
+    Que es un puntero constante que apunta a una variable que puede o no ser constante, pero no te va a permitir 
+    asignarle otro valor con una dereferencia.
+    Basicamente, const int* no permtie dereferenciar al puntero, no modificas la variable
+                 int* const no permite cambiar la direcc de mem asignada al inicializar 
+                 const int* const no permite las dos anteriores al mismo tiempo.
+
+    -Pasar puntero como parametro/argumento:
+    C++ nos permite no solo pasar por copia y referencia, sino tambien por direccion de mem usando punteros, este 
+    es copiado como un puntero de parametro de dicha funcion y la funcion puede laburar con eso. 
+    Para pasar un puntero como argumento le agregas al tipo de dato un "*":
+
+    void printByAddress(const std::string* ptr) // The function parameter is a pointer that holds the address of str
+    {
+        std::cout << *ptr << '\n'; // print the value via the dereferenced pointer
+    } Importante usar el "*" dentro de la funcion para hablar del valor y no del puntero.
+
+---Scope: 
+    Mas o menos lo que te podes imaginar.
+    Ya hay mucho del scope en la parte de variables, aca van unos datos mas,
+    name hiding o shadowing de variables, pasa cuando una variable dentro de un 
+    bloque nesteado tiene el mismo nombre que otra afuera del bloque, en este caso,
+    la variable que etsta adentro esconde la variable de afuera. Basicamente, si asignas
+    o modificas la variable con el mismo nombre que la de afuera, es como si modificaras 
+    una variable distinta, cuando salgas del bloque, la variable de afuera sigue valiendo 
+    lo mismo, la de adentro fue destruida. Si haces esto con variables globales, podes 
+    referirte explicitamente a la global usando ::var , el operador la va a buscar en 
+    el archivo o algo ase, asi sabe que te referis a la global. SON TABUU.
+
+    std::cout --> El operador de scope buscar cout en std.
+    ::Foo     --> El operador de scope busca Foo en el scope global.
+
+---Funciones(): 
+    Terminan con parentesis, y el nombre de esta es el identificador/identifier.
+    -Para pasar parametros por referencia se usa foo(tipoDato &nombreParam),
+    el signo "&" hace el paso por referencia. Por default, c++ pasa por valor
+    ABSOLUTAMENTE TODO, objetos, lo que fuere, si queres pasar por referencia
+    un parametro, simplemente agregas "&" al final del tipo de dato, fijate 
+    en el ejemplo arriba en valor y referencia.
+    Pasar por valor hace que cuando empiece la funcion, esta crea e inicializa
+    los parametros como nuevas variables en el scpoe de la funcion,
+
+    Devuelven un unico valor, si queremos multiples outputs de una misma funcion, 
+    pues usa tuplas o structs, las tuplas parecen ser mejores en general pero meh.
+
+    Podes hacer funciones a las cuales le metes parametros que no se usan en
+    el cuerpo de la funcion, caso muy puntual: Una funcion vieja fue modificada 
+    y ya no necesita el parametro de entrada, mejor dejarselo ahi que cambiar 
+    todo el codigo en busca de las apariciones de esta.
+
+    void doSomething(int /*count*/) --> El nombre esta comentado, solo se usa
+    {                                   para mostrar que recibe un param aunque
+    }                                   no lo use.
+
+    Van en la parte de arriba del archivo, y el main abajo. Si la funcion 
+    esta abajo del main, por la lectura secuencial, el compilador explota 
+    por no haber encontrado antes la funcion, existen las declaraciones
+    adelantadas/forward declaration, basicamente es decirle al compilador
+    que esa funcion existe aunque no este definida asi no expltoa despues, ej:
+    Digamos que tengo una funcion "int suma(int a, int b);" abajo de todo, bueno,
+    encima del main puedo escribir:
+
+    int suma(int a, int b); --> Ahora el compilador sabe que existe y no explota.
+
+    Las forward declaration sirven para funciones que estan en otros archivos,
+    donde no pueden ser reordenadas o casos donde hay funciones que llaman una
+    a la otra, asique no hay un orden, asique haces esto.
+
+    IMPORTANTE: Las funciones no pueden ser "anidadas", no podes definir una 
+    funcion dentro de otra funcion, por ejemplo, definir una funcion dentro
+    del main(), solo se puede hacer llamadas anidadas.
+
+    -Es fuertemente tipado --> Se declara que tipo de dato tiene cada variable 
+    y que tipo de dato devuelven las funciones.
+    -Es tipado estatico --> Si una variable tiene un tipo de dato, no se puede
+    cambiar el tipo de dato de esta, se tendria que hacer un casteo y guardarlo
+    en otra variable con el tipo que queremos.
+
+
+
+    #include <iostream>
+
+    int main() --> Le decimos al main que devuelve un int y al final devolvemos el 0.
+    {
+    std::cout << "Hello world!"; --> std es el namespace de cout(character Output)
+    return 0;    --> Con cout se usan << para indicar la informacion que se muestra.
+    }
+    Extra: Los saltos de linea son con \n, en el medio del texto con comillas funca.
+    << "hola un gusto \nme llamo juan" imprime:
+    hola un gusto
+    me llamo juan
+
+    std::cout basicamente esta diciendo algo como "de la libreria estandar de C++ 
+    saca la funcion/atributo/loQueFuere que se llama cout", std es un namespace.
+
+---Casteo:
+    -Casteo explicito: static_cast<new_type>(expression), toma el valor de la 
+    expresion como input y devuelve el valor convertido en el new_type:
+
+    static_cast<int>(5.5) --> Se vuelve int y mata el 0.5, tambien funca para cambiar
+
+    los enteros de unsigned a signed --> static_cast<unsigned int>(x); hace que 
+    la var x pase a ese tipo.
+
+    C++ tiene 5 casteos, C-style, static, const, dynamic y reinterpret casts,
+    siendo los ultimos 4 casts named/nombrados. El cast devuelve un objeto temporal
+    como las funciones, si no lo guardas se muere.
+
+    //MEJOR
+    -Static_cast: El mas usado y mejor de todos, especificamos a que valor pasamos.
+    Tiene de bueno que chequea en tiempo de compilacion, asique si falla, te avisa, 
+    y aparte tiene menos fuerza que C-style cast, por lo que no hace conversiones 
+    peligrosas como reinterpretacion o descartar constantes, tambien es copado 
+    cuando el compilador no te deja hacer un casteo implicito de reduccion/narrowing,
+    con el static_cast le decis que es exactamente lo que queres y te deja:
+
+    static_cast<int>(c) --> En este caso 'c' era un char
+    double d { static_cast<double>(x) / y }; --> Inicializando una variable.
+
+    //PELIGROSO AS FUCK
+    -C-style cast: En programacion estandar de C, el casteo se hace con el operador ()
+    con el nombre al tipo que queres cambiar dentro del parentesis y el valor a la derecha:
+    EN C --> double d { (double)x / y } --> Casteo (IGUALITO A JAVA), para usarlo en c++
+    se pone double d { double(x) / y };, es una funcion que toma como parametro lo que 
+    queres castear. Lo malo de este casteo, realiza muchas conversiones distintas dependiendo
+    del contexto, incluyendo los que estan en esta lista, el problema es que puede ser 
+    usado mal sin darse cuenta de que conversion usa.
+
+---Conversiones implicitas (casteo automatico):
+
+    Estan en todos lados las conversiones, tanto como cuando definis un float y 
+    pone un int sin ., ahi lo pasa a float, cuando pones un int y lo pasa a bool,
+    cuando devuelve una funcion con un tipo distinto pero conversionable, etc, pasa 
+    una banda, y se pueden separar en 4 conversione estandar que se fija el compilador,
+    onda, si ve que un tipo no encaja con otro, va a pasar por estas 4 conversiones a 
+    ver si puede castear o no, puede usar 0, 1 o mas conversiones en el proceso, 
+    un ejemplo rapido de 0 conversiones es cuando pasa un int a un long o viceversa,
+    los dos pesan lo mismo y se representan igual, asique solo tiene que copiar el 
+    valor binario y esta, 0 conversiones. Ahora, las 4:
+
+    -Floating-point and integral promotion: Ya que c++ ta diseñado para ser ultra 
+    portable y performante en muchas arquitecturas, los diseñadores no querian 
+    asumir que una CPU seria capaz de manipular valores mas chicos que el tamaño
+    natural de data de esa CPU, y por eso esta la promocion numerica, que es una 
+    categoria de conversion que pasa tipos numericos mas chicos (menor tamaño bits),
+    a tipos mas grandes que puedan ser procesados mas eficientemente. Este tipo 
+    de conversion es segura, osea, preserva el valor de conversion, todo valor 
+    puede ser convertido en el mismo valor del tipo destinado. Ej: Si hacemos 
+    una funcion que imprime un numero pasado, si pones int o double como param, 
+    entonces la misma funcion puede ser llamada con cualquier otro tipo de dato 
+    numerico y lo va a convertir cheto.
+    Double --> Si metes float, pasa a double tranquilamente
+    Int    --> Tiene algunas reestricciones por cosas como *No podes convertir 
+    un unint_32 en un negativo*, pero en general pasa todo.
+
+    -Numeric conversions: Tienen algunas conversiones adicionales entre tipos 
+    fundamentales, convertir integrales en otros integrales, convertir cualquier
+    punto flotante en otro punto flotante (double --> float o al reves), convertir
+    punto flotante a integral, viceversa y convertir cualquier integral o floating
+    point en bool (cualquier numero != 0 da 1 = true), aca no se promete que sean 
+    seguras.
+
+    -Narrowing conversions, list initialization, and constexpr initializers:
+    Son conversiones donde el tipo de llegada no puede llegar a guardar toda 
+    la data del tipo de salida, no esta bueno hacerlo y el compilador probablemente 
+    te avise si estas rompiendo todo, por eso, si queres hacerlo aproposito, usa 
+    el static_cast, mucho cuidado con estas.
+
+    -Arithmetic conversions:
+    Los operadores aritmeticos, de relacion, bitwise y el "?" que es ifThenElse 
+    necesitan tener operandos de mismo tipo, y si pones distintos, busca solucionar 
+    aplicando conversiones como las anteriores, con una jerarquia donde reina 
+    el long double y baja, con los floating point arriba y los enteros abajo con 
+    el int como ultimo. Y en general el std::cout << pasa a int o double. 
+    Y tambien hay un orden cuando se trata de conversion unsigned, que rompen 
+    todo, ej: 5u - 10 --> Da unsigned int 4294967291, porque pasa el -10 a 
+    sin signo.
+    Otro ej:  (-3 < 5u) --> Si no estuviera la u, es es true, pero como esta la u,
+    el -3 se convierte en sin signo, haciendo un overflow o algo de sin signo, y 
+    volviendose mucho muy grande, asique es false.
+
+---Control de flujo (Loops, if, etc):
+    Hay unos cuantos:
+
+    -Condicionales: if, else, switch (Anda a saber que es el switch)
+
+    -Saltos: goto, break, continue (Se siente como RISCV, va a x lugar)
+
+    -LLamadas a funcion: Salto de ida y vuelta, return.
+
+    -Loop: while, do while, for, ranged-for.
+
+    -Halts: std::exit(), std::abort(), terminan el programa.
+
+    -Excepciones: try, throw, catch, manejo de errores.
+
+---if y switch:
+    El if puede ser constexpr, requiere que la condicion sea una expresion
+    constante, de ser asi, se puede evaluar en tiempo de compilacion haciendo
+    que la condicion se reemplace por el caso que sea, ya que se trata de una 
+    condicion constante, siempre va a pasar igual, por lo que el compilador 
+    puede reemplazar el if por el cuerpo del codigo correcto.
+
+    -switch: Es un condicional que usa pattern matching, podes definirle los 
+    casos y si queres uno default, SOLO PODES PASARLES EXPRESIONES QUE RESUELVAN
+    A UN TIPO INTEGRAL O NUMERICO, CUALQUIER OTRO NO (y podes castear):
+    Foo(int x) {
+        switch (x) --> Le pasas la expresion a evaluar.
+    {
+    case 1: --> Si x == 1, se ejecuta esto.
+        std::cout << "One";
+        return; --> Si llega al return, termina la funcion entera.
+    case 2: --> Si x == 2, se ejecuta esto.
+        std::cout << "Two";
+        break; --> Si llega al break, termina el switch y sigue Foo.
+    case 3: --> Si x == 3, se ejecuta esto.
+        std::cout << "Three";
+        return; --> IMPORTANTISIMO: PONE RETURN O BREAK, SINO SE EJECUTA TODO.
+    default:--> Si no se cumple ningun caso, se ejecuta el default, pero es  
+        std::cout << "Unknown"; opcional el default, si no lo pones, no hace
+        return;                 nada y termina el switch.
+    }}
+    Lo copado de esto es que estan mucho muy optimizados, por eso solo pueden 
+    usar Integrals, si se puede, es mucho mas rapido que el if.
+    IMPORTANTE: Si en una funcion dentro de un switch usas return, no solo 
+    terminas el condicional, sino que salis de la funcion entera, por otro lado,
+    si en el mismo caso usas "break", entonces salis del swith y seguis dentro 
+    de la funcion. 
+    USO GENERAL: Si tenes que evaluar una sola expresion integral, usa el switch.
+    USO particular: Si queres ver que una letra es una vocal o consontane,etc, 
+    usando switch y escribiendo las 10 vocales en minus y mayus, ya que la condicion
+    solo se evalua una vez, es mejor.
+    bool esVocal(char c)
+    {
+    switch (c)
+    {
+    case 'a': // if c is 'a'
+    case 'e': // or if c is 'e'
+    case 'i': // or if c is 'i'
+    case 'o': // or if c is 'o'
+    case 'u': // or if c is 'u'
+    case 'A': // or if c is 'A'
+    case 'E': // or if c is 'E'
+    case 'I': // or if c is 'I'
+    case 'O': // or if c is 'O'
+    case 'U': // or if c is 'U'
+        return true;
+    default:
+        return false;
+     }
+    }
+    EXTRA: Si queres que alguno caso particular tambien ejecute el siguiente, por 
+    cosas de la vida, qcy, esta el atributo [[fallthrough]]; , se tiene que usar
+    asi, en una linea vacia con ";" (una linea con un ; es una declaracion nula,
+    null statement, no hace nada).
+
+---while y do while:
+    while (condition) {
+    statement;
+    }
+
+    do { --> Evalua 1 vez el cuerpo como minimo.
+    statement;
+    } while (condition)
+
+    EXTRA: Tanto el for como el while pueden usar el break para 
+    salir del ciclo como un continue; para terminar una iteracion
+    y empezar la siguiente.
+
+---for y for each:
+
+    EXTRA: Tanto el for como el while pueden usar el break para 
+    salir del ciclo.
+
+    for (init-statement; condition; end-expression) { --> For tranca
+    statement; --> Ej for: (int i{ 1 }; i <= 10; ++i)
+    }
+
+    EXTRA: El for puede tener multiples inicializaciones:
+        for (int x{ 0 }, y{ 9 }; x < 10; ++x, --y)
+
+    for (element_declaration : array_object) { --> For each
+    statement;
+    }
+
+---Halts:
+    EL halt es una declaracion de estructura de control (estructura de control)
+    que termina el programa, en C++ los halts estan implementados como funciones 
+    en vez de palabras claves.
+
+    -std::exit() --> Hace que el programa termine normal, terminacion normal significa
+    que el programa termino en la forma esperada, no significa exitosa, pero que termino 
+    en si, mas alla de lo que haya pasado. exit() realiza una serie de limpieza de funciones.
+    exit() es llamada implicitamente despues del main(), si queres usarla porque te pinto, 
+    sacalo de cstdlib, IMPORTANTE: NO LIMPIA VARIABLES LOCALES.
+    Existe std::atexit(funcion) --> Cuando el programa termine naturalmente, se va a llamar a 
+    la funcion parametro de atExit. USO: Limpieza de memoria de algun tipo, las partes que suelen 
+    ser variables y eso en general lo limpia bien el sistema, quizas no las locales, blabla, las 
+    que si son un ejemplo para atexit es si crear archivos durante el programa, cuando termine 
+    quizas queres eliminarlos.
+
+    -std::abort --> El abortar causa que el programa termine de forma abnormal, lo que 
+    significa que tuvo algun problema durante la ejecucion y no pudo seguir, por ej: dividir por 0
+    hace que el programa no pueda seguir.
+
+    -std::terminate --> Se suele usar junto con las exceptions, suelen ser llamadas implicitamente 
+    cuando una exception no fue manejada, por default, terminte llama a abort. 
+
+---goto:
+    De ser posible, NO USAR.
+    Son saltos incondicionales, saltan si o si a donde le diga, se usa la
+    declaracion goto y una declaracion de etiqueta:
+
+        tryAgain: --> Asi no mas se declara la etiqueta, igualito que en RISCV.
+
+        if (talCosa) {
+            goto tryAgain; --> Y asi es el salto, goto etiqueta;
+        }
+    El scope de las etiquetas es de funcion, osea que, son visibles a traves de 
+    la funcion incluso antes de su declaracion, el goto y la etiqueta tienen que 
+    aparecer en la misma funcion. Se puede poner la etiqueta al final y el goto
+    al principio y funca, EXACTAMENTE IGUAL A RISCV
+
+---Type aliases y Typedef:
+
+    Usando la palabra clave using, creas un alias para un tipo de dato 
+    existente:
+    //MEJOR
+    using Distance = double; --> Define "Distance" como un alias de double
+    y podes usarlo donde pinte:
+
+    Distance milesToDestination{ 3.4 }; --> Es un double.
+
+    IMPORTANTE: No pongas el mismo alias para 2 tipos, no seas bolu.
+
+    SCOPE: Igual que con los identificadores de variables, si te pinta, 
+    podes hacerte un header donde esten los alias que quieras.
+
+    Las convenciones para los alias son:
+    //MEJOR
+    -Alias sin sufijo, hoy en dia parece que lo mejor es escirbir los alias 
+    o cualquier otro tipo de dato definido por vos empezando en mayus y sin
+    sufijo, asi diferencias esto de las variables y funciones.
+
+    //VIEJOS
+    -En C, se usaba el sufijo _t que indica que es un tipo de dato, pero por 
+    cosas de la vida, ahora se usa para tipos en el scope global.
+    -Aliases con sufijo _type, algunas librerias estandar la usan, otras no.
+
+    //VIEJO
+    Typedef(Type definition): es una forma vieja de crear alias para un tipo,
+    usabas la palabra clave typedef, tipo y alias:
+    typedef long Miles; --> Miles funca como long.
+
+    USO GENERAL: Se suele usar para esconder detalles especificos de plataforma,
+    por ej: En algunas plataformas el int ocupa 2 bytes, en otras 4, por lo que 
+    usar mas o menos es peligroso, depende de la plataforma asi, y como ningun 
+    tipo fundamental da indicacion de su tamaño, cuando se labura con programas 
+    que queres usar en multiples plataformas, se suelen usar aliases para incluir
+    el tamaño en bits, como: int8_t es un entero con signo de 8 bits, y asi con los 
+    otros, de esta forma, podes usar el tamaño especifico que queres. Para estar 
+    seguro de que cada alias se resuelve en el tamaño que vos queres, se suelen usar 
+    directivas como:
+    #ifdef INT_2_BYTES --> Si sacaste la info y definis esto, entonces usas el alias
+    using int8_t = char;   indicando que tipo de dato va a ser cada uno.
+    using int16_t = int;
+    using int32_t = long;
+    #else              --> Si no se cumpliera lo de arriba, lo asignas de esta otra forma.
+    using int8_t = char;
+    using int16_t = short;
+    using int32_t = int;
+    #endif
+
+    Los tipos con tamaño fijo de la libreria estandar (int16_t y ase) son alias a los tipos 
+    fundamentales, de esta forma, tenes el tamaño correcto en el sistema en el que estes.
+
+    OTRO USO: Hacerte la vida mas facil con los tipos de datos compuestos que pueden tomar 
+    mucha escritura: 
+    std::vector<std::pair<std::string, int>> --> Un array de tuplas de (string,int)
+
+    Podes hacer un alias como:
+    using VectPairSI = std::vector<std::pair<std::string, int>>;
+    para despues declararlo --> VectPairSI
+
+    OTRO USO: Documentacion de un valor y comprension, por ej: una funcion que llamada 
+    gradeTest(); --> Vemos que devuelve un int, pero no sabemos si significa una nota 
+    de letra, las preguntas que salieron mal, el ID del pibe, anda a saber, para eso,
+    podemos hacer lo siguiente con un alias:
+
+    using TestScore = int;
+    TestScore gradeTest();
+    Es util si tenes mucha complejidad en el programa y queres no perder lo que pasa.
+
+    OTRO USITO: Ya que basicamente es un macro para tipos, si queres cambiar un tipo 
+    de x cosa, podes hacerlo cambiando el alias en vez de ir por todo el programa.
+
+---Type deduction/inference (auto keyword):
+    Una caracteristeca que le permite al compilador deducir el tipo de un objeto
+    desde su inicializador, se usa poniendo la palabra clave "auto" antes de la 
+    inicializacion de la variable, y se puede usar con inicializadores que 
+    tengan funciones.
+    Si puede deducir el tipo, lo hace, y tambien si queres definir un poco mas 
+    podes ponerle el sufijo del tipo para que lo tome:
+    auto a { 1.23f };--> a es un float
+    auto b {521};    --> b es un int
+    auto c {"hola"s} --> c es un string literal, pero hay que aclarar la s porque
+                        los strings son chotos, y con string_view aclarar "sv".
+
+
+    std::string_view getString(); --> Toma un input y lo devuelve como string_view
+    auto s2 { getString() };      --> Recibe un string view asique lo toma como ese 
+                                    tipo.
+
+    CON FUNCIONES: //EN GENERAL MEJOR ESPECIFICA EL TIPO DE RETORNO CAPO.
+    Cuando le pones la palabra auto a una funcion, realiza la deduccion del tipo de 
+    retorno de la funcion, al usar auto, todos los valores de la funcion tienen que 
+    devolver el mismo tipo, o sino tira error. Lo util de esto es que, al usarlo,
+    se niega el peligro de que el value de retorno sea de otro tipo al esperado, 
+    previniendo conversionesa automaticas. En casos donde un tipo puede cambiar 
+    segun la implementacion, esto es muy util.
+
+---Function overloading: 
+    Nos permite crear multiples funciones con el mismo nombre, mientra 
+    que cada funcion tenga parametros de distintos tipos, o sean diferenciables,
+    cada funcion con el mismo nombre en el mismo scope se llama overload function.
+
+    int add(int x, int y) // integer version
+    {
+        return x + y;
+    }
+    double add(double x, double y) // floating point version
+    {
+        return x + y;
+    }
+    dos versiones de la misma funcion, lo que las mantiene distintas es el tipo
+    de los parametros. Las funciones pueden ser distintas tanto en tipos que de 
+    parametros como cantidad de parametros. La firma de una funcion/function signature
+    es lo que la diferencia dentro de un header cuando esta forward declared.
+    Es importante que pueda pasar que si definis dos veces la funcion pero hay 
+    ambiguedad con cual funcion elegir, expltoa, esto puede pasar si por ej, tenes 
+    la funcion suma con enteros y con double y le pasas por param un long,
+    se va a fijar haciendo una serie de conversiones y pasos a ver si logra matchear,
+    en este caso lo hace con ambas porque esa serie de pasos no resuelve bien esto y 
+    tira lo siguiente:
+    error C2668: 'foo': ambiguous call to overloaded function
+    message : could be 'void foo(double)'
+    message : or       'void foo(int)'
+    message : while trying to match the argument list '(long)'
+    En estos casos podes o hacer una funcion extra que tome el dato que estas usando,
+    o podes castear el parametro que usas para que encaje en la que queres.
+
+    -  = delete: En el caso donde quiero que explicitamente una funcion no sea llamable,
+    podemos definir esa funcion como borrada con el =delete specifier, Si el compilador 
+    matchea una funcion llamada a esto, la compilacion para, matchear la funcion es 
+    tener misma cantidad de param y mismo tipo.
+
+---iostream: 
+    El cout esta buffereado, osea, se almacena en algun lado antes de 
+    poder salir, las instrucciones solicitan que que se envie a la 
+    consola, pero no es inmediato, sino que se va a un espacio de 
+    memoria llamado buffer donde estan las solicitudes del sistema,
+    y cada tanto el buffer empuja todos estos pedidos en grupo, eso
+    significa que se vacia y envia todos los pedidos al dispositivo
+    de output. 
+    Lo importante de esto es que si el programa crashea, aborta o 
+    se pausa, el buffer nunca va a poder seguir entregando los 
+    elementos que tiene, porque esta esperando un output que no 
+    va a llegar porque esta pausado.
+    Un output no buffereado es mucho mas lento, al enviar cada
+    pedido de output al dispositivo uno por uno, es mas lento 
+    que bufferearlos y enviarlos en grupo, porque el coste de 
+    enviar al dispositivo de output es pesado.
+
+    std::endl hace un salto de linea y envia todo el buffer, lo cual 
+    es lento, y si aparece muchas veces, tamos repitiendo una 
+    accion poco necesaria y lenta. Por lo tanto, mejor usar
+    '\n' o "\n" (comilla simples se usan para caracteres 
+    unicos, las dobles son para cadenas de texto), que es un salto
+    de linea, el compilador traduce esos 2 caracteres a LF, que 
+    es el caracter "linefeed", que vale 10 en ASCII, y toma eso 
+    como la rutina de salto de linea.
+
+    std::cin es buffereado tambien, cuando se lo llama, el 
+    pedido entra al buffer del input y el caracter ">>" pasa 
+    el texto (de texto a valor) a la variable asignada por copia.
+    Extra, el "enter" cuando aceptas cuenta como un \n, y siempre
+    se tiene que apretar si solo usas std::cin.
+
+    El operador >> para extraer inputs:
+    1.Ignora todos los espacios en blanco iniciales hasta que aparezca
+    un caracter.
+    2.Si el input buffer esta vacio, el operador se va a quedar esperando
+    que entre data.
+    3.El operador extrae todos los caracteres cosnecutivos que puede
+    hasta que encuentre una nueva linea o un char no valido.
+
+    Tonces, si en el paso 3 extrajimos cosas, entonces salio bien y 
+    se realiza la asignacion por copia al a variable, sino se pudo 
+    extraer nada, cuando la extracion falla y quedan variables por
+    asignar, se les asigna 0. Un tipo de falla puede ser por el tipo
+    esperado, si espera int y pasar un char, tonces falla y se 
+    asigna 0. Con fraccionario, toma los primeros numeros que sean 
+    enteros, pero cuando encuentre el punto, falla y al resto 
+    se le asigna 0. Si tiene un +34234, es un numero aceptable,
+    descarta el "+" y lee el numero.
+
+---Qualifiers/Cualificadores?:
+
+    -Constantes: Valores que no cambian durante la ejecucion del codigo.
+    Cuando una constante tiene nombre(identificador) se llama constante 
+    nombrada (SON UNOS GENIOS!!!), hay 3 formas de definir estas:
+    -Variables constantes: Usas la palabra clave const cuando definis 
+    el tipo del objeto:
+    consts int/char/float/etc nombreVar {};
+    Ya que son constantes, solo se les puede asignar un valor al ser 
+    inicializados, si lo inicializas vacio/en 0, despues no podes hacer
+    una asignacion. Y adentro de la inicializacion cualquier expresion
+    que tu corasao quiera.
+
+    -Macros con sustitucion: Ya que reemplazan un texto por otro que 
+    siempre es el mismo, cuentan como constantes.
+    -Constantes enumeradas.
+
+    Literals constants: Constantes escritas manualmente, no dependen de un input,
+    fueron escrita asi y fue. Un valor literal es directamente puesto
+    en el ejecutable, no puede ser cambiado, mientras que una variable
+    esta en memoria, por lo que si puede. Si queres especificar el tipo de dato
+    de un literal, por en un caso donde queres imprimir 5 pero como float (porque
+    te pinto), tonces hay una lita de sufijos que indican que tipo de dato es:
+    5f --> Significa que 5 es tipo floa, 5u --> 5 es un entero sin signo.
+
+    Volatil: Se usa para decirle al compilador que un objeto puede cambiar
+    su valor en cualquier momento, este se usa muy poco porque desactiva 
+    ciertas optimizaciones de tipo,
+
+---Mas de un archivo:
+    En este caso yo lo agregue a la carpeta donde
+    tenia el primero, pero entiendo que funca en todo el proyecto, 
+    vas a crear el archivo .cpp y en el task.json hace o:
+
+    -Primer metodo: Si queres ser explicito con los archivos que se 
+    van a compilar, reemplazas el "${file}", por "nombre.cpp", y 
+    "nombre2.cpp", asi aclaras especifamente cuales se compilan.
+
+    -Segundo metodo: En windows visual studio code, si reemplazas 
+    el "${file}", por "${fileDirname}\\**.cpp", el compilador 
+    ejecuta todo en el directorio.
+
+    Podes definir funciones en un archivo y despues hacer el 
+    forward declaration en el main sin necesidad de definirla
+    en el mismo. Ej:
+    archivo1:
+    #include <iostream>
+
+    int add(int x, int y); // Declaramos que existe en algun lado
+                        // la funcion add.
+
+    int main()
+    {
+        std::cout << "The sum of 3 and 4 is: " << add(3, 4) << '\n';
+        return 0;
+    }
+
+    archivo2:
+    int add(int x, int y) //En otro archivo ta la funcion definida.
+    {
+        return x + y;
+    }
+
+    IMPORTANTE: Si una funcion dentro de otro archivo usa algo
+    de <iostream>, entonces la directiva de include tiene que
+    estar tanto en el archivo de definicion como el archivo que 
+    la use.
+
+---Macros: 
+    es una regla que define como un input de texto se reemplaza
+    por otro output, suelen ir todo en mayus separados por "_", 
+    hay 2 tipos basicos de macros:
+
+    Function-like macros: actuan como una funcion y sirven mas o menos igual,
+    su uso es considerado poco seguro y casi todo lo que se puede hacer con 
+    estos es reproducible con una funcion normal.
+
+    Object-like macros: 
+    #define IDENTIFIER                   --> Sin texto de sustitucion
+    #define IDENTIFIER substitution_text --> Con texto de sustitucion
+    #define MY_NAME "Alex"               --> Ej con texto
+
+    Cuando el preprocesador encuentra esta directiva, asocia el IDENTIFIER con
+    el substitution_text, y ahora todas las apariciones del identificador son
+    reemplazas por el texto de sustitucion. Ya no se usan, era una forma de 
+    ponerle nombre a las literals (constantes), pero ahroa se puede.
+
+
+    Compilacion condicional/Conditional compilation:
+    Las directivas de preprocesador de Compilacion condicional te permite 
+    especificar bajo que condicions algo compila o no, las mas usadas son:
+
+    #ifdef: permite que el preprocesador se fije si un identificador fue 
+    definido anteriormente usando el "#define", si es el caso, entonces
+    el codigo que esta entre #idfef y #endif se compila, es un bloque 
+    condicional que se fija el #define.
+
+    #define PRINT_JOE --> Se define PRINT_JOE
+    int main()
+    {
+    #ifdef PRINT_JOE --> El preprocesador ve que si fue definido asi que ejecuta.
+        std::cout << "Joe\n"; // will be compiled since PRINT_JOE is defined
+    #endif
+        return 0;
+    }
+
+    #ifndef: Es la negacion del ifdef, se cumple si lo que elijas NO fue 
+    definido.
+
+    int main()
+    {
+    #ifndef PRINT_BOB --> Como en este caso nunca fue definido, se ejecuta.
+        std::cout << "Bob\n";
+    #endif
+
+        return 0;
+    }
+
+    Tambien se pueden escribir asi:
+    #if defined(PRINT_BOB) y #if !defined(PRINT_BOB), que es mas linda.
+
+    #if 0: Con esto al inicio y un #endif al final, se ingora todo ese
+    bloque de codigo durante la compilacion, y si cambias el 0 por un 1,
+    el codigo se ejecuta normal.
+
+    Las directivas de definicion solo tienen efecto en el mismo archivo
+    donde fueron definidas, si tenes por ej:
+    funcion.cpp
+
+    #include <iostream>
+    void doSomething()
+    {
+    #ifdef PRINT
+        std::cout << "Printing!\n";
+    #endif
+    #ifndef PRINT
+        std::cout << "Not printing!\n";
+    #endif
+    }
+
+    main.cpp --> Archivo main que se ejecuta.
+    void doSomething(); // forward declaration for function doSomething()
+
+    #define PRINT
+
+    int main()
+    {
+        doSomething();
+
+        return 0;
+    }
+    Imprime "Not printing" esto, porque, aunque este definido print en el 
+    main, cuando despues encuentra el archivo de funcion, no encuentra 
+    la definicion ahi, el scope de las directivas es de archivo.
+
+---Namespace:
+    Es una forma de referirse al espacio, scope, o lugar donde vive la funcion 
+    que quiero llamar, sin el std, no podemos usar la funcion cout, porque no 
+    sabemos de donde la saca, asique podemos decirle de esta forma que quiero
+    usar cout de la libreria estandar, tambien sirve si tenes funciones que 
+    se llaman igual.
+    Regla: Los namespace tienen que empezar en mayuscula.
+
+    Uso general: Evitar colision de nombres en proyectos grandes, si hay muchas 
+    funciones o variables, podes meter tus funciones dentro de tu propio namespace
+    para evitar el problema. Tambien para cualquier codigo que sea distribuido a otros,
+    tenes que meterlo en un namespace dentro de tu archivo para evitar es el mismo problema
+    de colision. Como extra, si podes una libreria dento de un namespace permite al usuario
+    ver los contenidos de la libreria cuando aparece el autocompletar.
+
+    Tambien sirven en el caso de: si estan en distintos namespace, podes tener 2 funciones
+    con el mismo nombre y para usarlas aclaras el namespace especifico,
+    , o podes escribir antes del codigo "using namespace "nombreDelNamespace"", 
+    asi podes llamar a cout sin  std::, ej:
+
+    #include "iostream"
+
+    using namespace std; --> Aca lo llamamos, asiq tenemos todas las 
+                            las funciones de std a mano sin tener
+                            que aclarar de donde salen. 
+    
+    int main()
+    {
+        //Se muestra un mensaje por pantalla.
+        cout << "Hola Mundo" << " Desde ProgramarYa." << "\n";
+
+        return 0;
+    } PARA NADA RECOMENDADO USARLO ASI.
+
+    Y para declarar un namespace basta con escribirlo asi:
+
+    namespace hola
+    {
+        void f() { std::cout << “hola”;
+    }
+
+    Ahora, si tenes otra funcion que se llame f(), no vas 
+    a tener problema, podes llamar a una funcion sin 
+    namespace normal y a la otra usandolo:
+
+    namespace Hola
+
+    {
+        void f() { std::cout << “hola”;
+    } --> Aca termina el namespace, es un bloquecito
+
+    void f() --> Aca hay otra funcion f()
+    {
+        std::cout << “adios”;
+    }
+
+    int main()
+    {
+        f(); --> LLama a f() normal
+    Hola::f(); --> Llama a f() de hola
+    getchar();
+    return 0;
+    }
+
+    Tonces, el namespace es otro scope que podes usar para no tener
+    problemas de colision de nombres entre funciones, estos pueden 
+    tener solo declaraciones y definiciones, no ejecutables, en el 
+    sentido de que un namespace no va a ejecutar nada, pero puede 
+    tener funciones que realicen una ejecucion. Se suelen usar para
+    agrupar nombres relaciones en grandes proyectos, por ejemplo si 
+    pones todas tus funciones matematicas en un namespace llamado 
+    math, tonces no chocan con las mismas funciones fuera con el 
+    mismo nombre.
+    Todo lo que no este definido dentro de una clase, funcion o otro
+    namespace, es parte del namespace global, o global scope, el main
+    ta en el global, por eso, si tenes funciones con distinta definicion,
+    ambas tan en el scope global y chocan. Y lo mismo si tenes a ambos
+    en distitnos archivos pero en el scope global, cuando el linker los 
+    junte, explota.
+    Para aclarar el namespace se usa el operador de resolucion de scope/
+    scope resolution operator "::", el identificador a la izquierda de este 
+    identifica el namespace donde esta lo de su derecha.
+    Para llamar a una funcion dentro de un namespace, se usa el operador de 
+    resolucion de scope/scope resolution operator "::", que basicamente dice:
+    "Busca en el namespace de la izquierda lo que sea que tengo a la derecha.
+
+    Se pueden declarar namespaces con el mismo nombre en multiples archivos.
+    Namespace y headers: Si queres importar un namespace de otro archivo, hay 
+    que usar headers, y para eso se tiene que cumplir: el otro archivo tiene 
+    que tener: otroArchivo.cpp el namespace definido con sus funciones y variables 
+    adentro definidas, y otroArchivo.h tiene que tener TAMBIEN el namespace definido
+    con el mismo nombre pero con las variables y funciones solo declaradas, no definidas.
+
+    ej: archivo.h --> El header.
+    #ifndef ADD_H              --> Header guard
+    #define ADD_H
+
+    namespace BasicMath
+    {
+        int add(int x, int y); --> Forward declaration.
+    }
+    #endif
+    ----------------
+    archivo.cpp --> El archivo con la def.
+    #include "add.h" --> Incluye su header.
+    namespace BasicMath --> MISMO Namespace
+    {
+    int add(int x, int y)
+        {
+            return x + y; --> definicion de la funcion.
+        }
+    }
+
+    Con todo eso hecho, ahora si podes hacer #include "archivo.h" para 
+    usar lo que quieras.
+
+    EXTRA: Se pueden nestear namespaces --> declaras uno y adentro otro y podes
+    asignar un nombre de un namespace que sea largo a una especie de variable para 
+    evitar, referencias el nombre, ej:
+    namespace Foo::Goo { 
+    (esto es lo mismo que declarar el namespace Goo adentro del
+    namespace Foo, esto salio en C++17)
+        funcion(int x)...
+    }
+    Ahora, para usar la funcion, tendrias que escribir:
+    Foo::Goo::funcion(x), o podes hacer 
+    namespace activo = Foo::Goo, y ahora haces activo::funcion
+    Es alias de namespace eso.
+
+---Debuggear:
+    Algunas estrategias simples:
+    -Poner comentarios en los llamados a funciones para ver que todo
+    se ejecuto usando std::cerr, al no ser buffereado, va a inputear
+    en el momento que sea leido, asique es preciso pero levemente
+    cuesta mas en performance por lo dicho anteriormente, pero aca no
+    importa, QUEREMOS ENCONTRAR EL BICHO. Tambien ta la alternativa de
+    #ifdef DEBUG --> Directiva condicional, lo pones si tas debugeando.
+    std::cout << std::unitbuf; // enable automatic flushing for std::cout (for debugging)
+    #endif 
+    Basicamente, en vez de tener que cambiar el tipo de printing a std::cerr,
+    podes usar siempre std::cout y con este ajuste al principio apagas 
+    el vaciado automatico del buffer de outputs, basicamente, en vez de salir
+    en grup cada cierto tiempo, apenas se ejecuta, sale.
+
+
+    -Analizar la logica del codigo a ver si algo no te da.
+    IMPORTANTE: Una funcion declarada(importada o lo que fuere) sin 
+    parentesis al final, osea, mal escrita, si la imprimis, se imprime
+    como 1, rarisimo.
+    -Un metodo tambien para poner comentarios de debuggin por todos lados 
+    y no preocuparse por sacarlos despues es usando directivas condicionales,
+    todo comentario de debug va a dentro de un bloque condicional:
+
+    #define ENABLE_DEBUG
+    #ifdef ENABLE_DEBUG --> Si vos escribiste al principio #define eso.
+    std::cerr << "main() called\n"; esto se ejecuta.
+    #endif
+
+    Tonces, si quiero que no se ejecuten los comentarios, solo saco o comento 
+    el define de arriba.
+    -Otro metodo condicional de debuggin es usando el preprocesador para mandar
+    la informacion al log (un registro en orden con el momento exacto en el 
+    que se ejecutan las acciones). Generar un log se llama logging, generalmente,
+    los logs se escriben en un archivo en el disco llamago log file, para ser vistos
+    mas tarde, se suelen usar para diagnosticar problemas.
+    Los log files estan separados del output del programa, por lo que te ahorras eso,
+    y tambien se pueden enviar a otras personas para analizar el problema. 
+    C++ std tiene funciones para hacer esto pero suenan incomodas, asique se 
+    recomienda el uso de librerias de terceros, por ejemplo: PLUG, y hay un ejemplo 
+    de su uso en: https://www.learncpp.com/cpp-tutorial/more-debugging-tactics/
+    para mas info. Y en casos donde se tenga DEMASIADO en cuenta el performance,
+    ta la libreria spdlog.
+
+    EL DEBUGGER: En principio funciona como en Java, Python, Haskell, etc. Si queres
+    imprimir cosas, cosas extra, si pedis un entero pero lo pasas como char, entonces
+    el numero va a cambiar por su valor de ASCII y explota todo.
+
+    Refactoring/refactorear(??: El objetivo de esto es organizar y modular el programa,
+    que cosas que sean muy complejas queden separadas y organizadas de una forma 
+    modular mas simple, una funcion que hace 5 cosas y es compleja se vuelvan 5 funciones
+    que hagan una cosa en especfico. 
+    IMPORTANTE: Si vas a refactorizar, podes o hacer cambios de comportamiento o 
+    cambios estructurales, NO HAGAS AMBOS A LA VEZ QUE ROMPES TODO, hace cambios
+    chicos y rastreables.
+
+    Programacion defensiva/Defensive programming: Es una practica donde tratamos 
+    de anticipar todas las formas en las que el programa puede ser usado mal, de una
+    forma no pensada como la nuestra, tanto para usuarios como para otro desarrollador
+    que lo use. Un ej: Pedis un entero y pasan un char, en este caso hay que tener en 
+    cuetna esta posibilidad y mandar algo como *Por favor intente de nuevo con un int*.
+
+    static analysis tools/Herramientas de analisis estatico: 
+    Programas que analizan el codigo SIN ejecutarlo para ver si hay posibles errores 
+    semanticos, cosas que pueden funcar sintacticamente pero no semanticamente, no
+    laburan bien, por ej el compilador tiene este programa, cuando nos dice que no 
+    usamos una variable, o que usas una variable no inicializada. El del compilador
+    es un programa tranca, si queres uno dedicado que busque mas, hay muchas librerias
+    que se dedican a eso, buscalas si te pinta.
+
+---linkage/Enlace, Statica y no Static:
+    Las variables locales tienen una propiedad llamada linkage/enlace, que determian 
+    si una declaracion de un mismo identificar en un scope distinto se refiere al 
+    mismo objeto, esto taba en la parte de variables, dijimos que las variables locales 
+    no tienen linkage, ahora, las globales pueden tener internal o external linkage:
+
+    -Internal: Un identificador con internal puede ser visto y usado desde una misma unidad
+    de traduccion (translation unit) pero no desde otras, basicamente, si esta en internal,
+    una variable global solo puede ser usada dentro del mismo archivo, si declaras la misma 
+    var global internal en otro archivo, no explota, porque cada archivo lee la suya.
+    Para hacer una variable global no constate internal, se usa la palabra clave static antes del nombre:
+
+    static int g_z{}; zero inicilizacion de un entero z, el g_ se usa para denotar global scope.
+
+
+    -External: Una variable externa puede ser usada y vista desde el mismo archivo donde fue definida 
+    hasta cualquier archivo que haga la forward declaration, de esta forma, cualquier cosa que 
+    sea external esta en un verdadero scope global. Para hacer a una constante externa, se usa 
+    la palabra clave extern antes de la definicion:
+
+    extern const int g_y { 3 }; --> Constante global(marcado por el g_) externa, accesible a todos 
+    los archivos con una forwar declaration. (Tambien se le puede agergar el constexpr)
+
+    IMPORTANTE: Para usar variables constante externas definidas asi, hay que hacer la 
+    forward declaration en el archivo usando la palabra extern antes del tipo y nombre 
+    de la variable, ejemplo usando la variable de arriba:
+    Otro archivo.cpp --> extern const int g_y; --> Asi podes usar la variable definida en 
+    otro archivo. USA VARIABLES INICIALIZADAS, no podes usar var no inicializadas.
+
+
+    IMPORTANTE:Las variables no constantes globales tienen external por default, pero se puede cambiar a 
+    internal usando static. Al reves, las variables globales constantes son internal por default y se 
+    pueden cambiar con extern.
+
+
+    IMPORTANTE:Las funciones son external por default, y de la misma forma, se pueden cambiar a 
+    internal usando static.
+
+    TABU: Usar variables NO CONSTANTES como globales, no son para nada confiables, colta.
+
+    Extra: Static, extern y mutables son storage class specifier/especificadores de almacenamiento
+    de clase.
+
+    IMPORTANTE: Static depende del contexto, una variable global tiene una duracion estatica siendo que
+    muere cuando termina el programa, una funcion tiene un linkage estatico si es interna, y tambien
+    una variable local puede tener duracion automatica o estatica, siendo automatica por default de 
+    toda la vida, termina el bloque y muere, o estatico:
+    -Cuando uan variable es estatica, se crea al incio del programa este donde este.
+    IMPORTANTE: Una variable estatica es inicializada una sola vez, y vive en ese mismo scope, no muere 
+    cuando termina la funcion donde este, pero se vuelve inaccesible mientras no se este en el scope,
+    por ej:
+
+    void incrementAndPrint()
+    {
+        static int s_value{ 1 }; --> Esto se inicializa UNA SOLA VEZ
+        ++s_value;
+        std::cout << s_value << '\n';
+    } --> No muere la variable, se va de scope.
+
+    -Si llamaras esta funcion 3 veces sin static, entonces las 3 veces imprime 2, porquie inicia en 1,
+    incrementa, se imprime y muere. Y asi 2 veces mas.
+    -Ahora, con el static, la variable se inicializa una sola vez, no muere cuando se termina el cuerpo,
+    sigue viva pero solo puede ser modificada DENTRO DEL SCOPE DE LA FUNCION, entonces, cuando llames 
+    3 veces a esto, va a imprimir 2, 3, 4 --> Porque se trata de la misma variable aumentando en 1 
+    cada vez. EXTRA: Inicializalas con un valor, sino funca raro. 
+    USO GENIAL: Generar IDS, cada vez que se cree un objeto, la variable ID ya estaba inicializada, 
+    asique con hacer static int ID {0}; y return ID++; siempre tenes un ID distinto.
+    Son como variables globales pero mas seguras porque solo pueden ser accedidas en su scope.
+    Static local variables are best used to avoid expensive local object initialization each time a
+    function is called.
+
+---Atributos: 
+    Los atributos son una de las características clave del C++ moderno que 
+    permite al programador especificar información adicional al compilador 
+    para aplicar restricciones (condiciones), optimizar ciertas partes del 
+    código o generar código específico . En términos simples, un atributo 
+    actúa como una anotación o nota para el compilador que proporciona 
+    información adicional sobre el código con fines de optimización y para
+    aplicar ciertas condiciones, pueden ir en variables, funciones y alguna
+    otra cosa mas:
+
+    ej con funcion:
+    int f(int i) --> Esta el if para que sea i>0 y despues haga algo
+    {
+        if (i > 0)
+            return i;
+        else
+            return -1;
+        // Code
+    }
+    cambia a:
+    int f(int i)[[expects:i > 0]] --> Mucho mejor que lo de arriba.
+    {
+        // Code
+    }
+
+---Default argument:
+    Son valores proveidos a la funcion por parametros, onda, podes poner 
+    un valor constante como parametro, ej:
+    void print(int x, int y=10) { --> Y = 10 si no se especfica ese param
+        Cuerpo...
+    }
+    void print(int x=10, int y=20, int z=30) --> Multiples
+
+    Si el que llama a la funcion no provee ese parametro, entonces por default 
+    va el valor asignado. No se pueden poner separados entre si, si un parametro 
+    esta como default, todos los siguientes tambien tienen que estarlo, y cuando 
+    llamas a la funcion, se respeta el orden en el que estan definidos, si el 
+    primer default es un int y el segundo un char, no podes llamar a la funcion 
+    con solo un char, explota.
+    If the function has a forward declaration (especially one in a header file), 
+    put the default argument there. Otherwise, put the default argument in the 
+    function definition. Tambien cuentan para diferenciar funciones overlodeada:
+
+    void print(int x, int y = 10);      // Son distintas funciones overlodeadas.
+    void print(int x, double y = 20.5); //  
+
+    Son muy utiles cuando queres tener un valor por defecto
+    razonable, pero que puede ser modificado de ser el caso. Ej: tirarDato(int caras = 6),
+    en este caso, si haces tirarDato(), vas a estar eligiendo 6 caras, de querer otro tipo 
+    de dado, se puede modificar. Tambien es util para modificar una funcion, le podemos 
+    agregar el parametro por default y asi no se rompe en todos sus llamados por todo el 
+    codigo.
+
+---Function Templates:
+    //AL PRINCIPIO CONTAMOS COMO SON Y COMO CREARLAS, MAS ABAJO ESTA COMO SE USAN.
+
+    Un sistema diseñado para no tener que crear un millon de funciones overlodeadas 
+    y que funquen con distintos tipos de dato; en vez de muchas funciones, creamos 
+    una unica plantilla/template. Como una definicion, la planilla desciribe que hace 
+    la funcion o clase, pero aca podemos usar los tipos placeholder, son un tipo que 
+    representa otro tipo no conocido pero que va a llegar mas tarde. Una vez que esta 
+    hecho el template, el compilador puede generar la cantidad de funciones overlodeadas 
+    que quiera de distitnos tipos. 
+
+    IMPORTANTE: Los templaste de funciones se definen dentro del header.
+
+    Ahora, la function template es una definicion de funcion normal que va a usar el 
+    template, cuando la creamos usamos el tipo placeholder/type template parameters/
+    tipos de template, para cualquier parametro, retorno y/o tipos usados en el cuerpo.
+
+    Para crearla, hay que hacer la funcion como siempre:
+    int max(int x, int y)
+    {
+        return (x < y) ? y : x;
+    }
+
+    Ahora, cambiamos todos los tipos de la funcion, en este caso int, por T y agregamos
+    la declaracion de template:
+
+    template <typename T> // this is the template parameter declaration
+    T max(T x, T y)       // this is the function template definition for max<T>
+    {
+        return (x < y) ? y : x;
+    } --> Ahora no es max(), sino, max<T>
+
+    Tambien se pueden tener tipos T y tipos que si o si queres que sea uno especifico
+    y tambien parametros por default:
+    template <typename T>
+    T sum(T x,Float y,int z = 8 ) {
+        return x + y + z;
+    } --> No es un gran ejemplo pero muestra que tenes libertad de generalizar lo que 
+    vos quieras no mas.
+
+    Otro ejemplo:
+    template< class T, class Compare > --> class = typename, solo que mas viejo
+    const T& max( const T& a, const T& b, Compare comp ); 
+
+    los primeros 2 parametros son del mismo tipo T, y el tercero dice compare, pero 
+    eso es un placeholder, da informacion pero no cambia la funcionalidad, si en vez
+    de Compare fuese "j", funcaria exactamente igual. La convecion de nombres para 
+    los tipos de un template suele ser:
+    -Si el tipo es obvio (int, char, lo que fuere), usa una letra mayus, como T.
+    -Si el tipo no es obvio y se necesita algo de info, pone una palabra que 
+    empiece con mayus para indicar que deberia ser, como el caso de Compare, se 
+    espera un comparador.
+
+    Los templates tambien se pueden overlodear, ej:
+    template <typename T>
+    auto add(T x, T y) --> Funcion que toma 2 parametros del mismo tipo
+    {
+        return x + y;
+    }
+    template <typename T, typename U>
+    auto add(T x, U y) --> Toma dos parametros de distinto tipo
+    {
+        return x + y;
+    }
+    template <typename T, typename U, typename V>
+    auto add(T x, U y, V z) --> Toma 3 parametros de distinto tipo
+    {
+        return x + y + z;
+    } --> Cada una de estas es distinta a la anterior.
+
+    Tambien estan los non-type template parameters/parametros sin tipo de plantilla,
+    std::bitset<8> bits{ 0b0000'0101 }; aca se ve que dentro del <> hay un 8, que no 
+    es un tipo de dato en si, sino que indica la cantidad de bits que vga a tener el 
+    numero.
+
+    template <int N> -->Declario el int N, no un generico
+    void print()
+    {
+        std::cout << N << '\n'; // use value of N here
+    }  ---> Uso N adentro de la funcion
+    print<5>(); -->Printea 5
+
+
+
+    USARLAS--> El template por si solo se puede pensar como un generador de funciones 
+    overlodeadas ahora para usarlas se llama como una funcion normal pero antes del 
+    parentesis con argumentos, se abren angular brackets y se expecifica el tipo de 
+    dato:
+    max<actual_type>(arg1, arg2); o max<int>(a, b);
+    o
+
+    Cuando el compilador ve ese llamado, va a determinar que no existe la funcion en 
+    si, y va a usar el template para crearla, el proceso de crear una funcion con 
+    el tipo se llama function template instantiation/intancia funcion de plantilla...?,
+    una funcion instanciada por un llamada de funcion se lama implicit instantiation,
+    una funcion instanciada desde un template se llama specialization, o mas natural,
+    instancia de funcion, el template de donde salio la funcion se llama primary template.
+
+    Cuando el llamado a la funcion es hecho la primera vez, el template instancia la funcion 
+    y se usa esa, ahora, si se hace otro llamado con el mismo tipo de datos, el template no 
+    crea otra, sino que busca la misma funcion de antes, siempre que no haya sido instanciada,
+    va a ser instanciada, sino, se usa la que ya fue instanciada. Va creando las funciones 
+    overlodeadas y las deja ahi.
+
+    Tambien el compilador puede deducir el tipo de dato en casos obvios:
+    std::cout << max<>(1, 2) << '\n';
+    std::cout << max(1, 2) << '\n';
+    Ambos funcan, la diferencia es que el max<>() va a buscar el template de la funcion, solo 
+    va a considerar max<int> template ovearloads, mientras que el max() va a considerar primero 
+    overloads que no sean de templates y si no encuentra se fija templates.
+
+    EXTRAS: Si queres tener multiples tipos de parametro podes hacerlo como antes, pero te puede 
+    pasar que quizas queres devolver uno de esos parametros pero hay conversion de tipo en algun lado,
+    tonces metele la palabra clave "auto" para que el compilador deduzca que hacer, no mucho mas.
+
+    EXTRA DE C++20: Agregaron las plantillas abreviadas, en vez de poner template y todo eso, solo 
+    le pones tipo "auto" a los parametros y es EXACTAMENTE LO MISMO que  tener un tipo parametrico
+    para cada parametro, no el mismo, serian un T y U y asi.
+
+    auto max(auto x, auto y)
+    {
+        return (x < y) ? y : x;
+    }
+
+    Es igual a:
+
+    template <typename T, typename U>
+    auto max(T x, U y)
+    {
+        return (x < y) ? y : x;
+    }
+
+---Optimizacion: 
+    Hoy en dia el compilador mete cantidades astronomicas de 
+    optimizaciones al codigo, reemplazando nuestro codigo por otro quizas menos
+    legible pero mas optimo, algunas de estas optimizaciones son:
+
+    Evaluacion en tiempo de compilacion: En vez de evaluar algunas expresiones
+    en tiempo de ejecucion, cuando se esta compilando, el compilador ya las 
+    evalua y encaja el resultado, de esta forma el programa no tiene que evaluar
+    en tiempo de ejecucion.
+
+    Constan folding: Es una de las formas originales de optimizasao, todas las 
+    expresiones literales con operandos son evaluadas en tiempo de compilacion.
+
+    Constant propagation: En un caso donde inicializas una variable con un literal,
+    ese valor no va a cambiar hasta otro punto(el programa se fija esto), por ende, 
+    cuando sea llamado, en vez de acceder a la  memoria de donde esta guardado de nuevo, 
+    lo reemplaza por el valor con el que  fue inicializado. Asi en vez de accerder a 
+    memoria una vez para guardarlo y  otra para sacarlo, lo guarda y reemplaza en sus posiciones.
+    Es mas facil optimizar constantes porque al saber que no cambian en ningun momento del 
+    programa, puede evitar rutinas para fijarse cuando va a ser modificada la variable.
+
+    Dead code elimination: eliminacion de codigo que quizas se ejecuta pero no afecta 
+    el comportamiento, cuando un codigo le pasa esto, se dice que fue "optimized away",
+    ya no esta.
+
+    IMPORTANTISIMO: Debbugear y optimizar al mismo tiempo no se llevan bien, un programa
+    optimizado puede mover las cosas de muchas formas que vos no esperas, por ejemplo, un
+    codigo muerto que vos queres ver en el programa quizas fue "optimized away", entonces 
+    no lo podes encontrar, basicamente, si debuggeas, apaga las optimizaciones.
+
+---Programacion en tiempo de compilacion: 
+    La evaluacion en tiempo de compilacion es 
+    muy buena para el performance, lo malo es que depende de la implementacion que cosas 
+    se ejecutan y que cosas no en ese contexto, por suerte c++ tiene unas formas de 
+    pedir que ejecute ciertas cosas en tiempo de compilacion, y de ahi viene el nombre,
+    programacion en timepo de compilasao, y sus ventajas son:
+
+    performance: Las evaluaciones en TC(tiempo de compilacion) hace a los programas mas 
+    chicos y rapidos, ocupan menos memoria y evaluan menos cosas, mas programa se peuda 
+    encajar en la compilacion, mas rapido es.
+
+    Versatilidad: Siempre podemos encajarlo en codigo que necesite esta en TC, esto solo 
+    para codigo que no aplique a la regla as-if (Permite cualquier transformacion de 
+    codigo que no afecte el comportamiento del programa).
+
+    Predicibilidad y seguridad: Si queremos estar seguros que algo funcione en TC lo haga, 
+    aseguramos su funcionamiento, si tirar error es ubicable y no tenemos que buscar tanto.
+    El comportamiento NO DEFINIDO no esta permitiedo en TC, por lo que es buenisimo para 
+    saber si algo funca o no.
+
+    Para trabajar de esta forma, se peuden usar solo expresiones constantes, osea, las que 
+    pueden ser evaluadas en TC, las que no cumplen eso se llama runtime-expressions, o 
+    expresiones en tiempo de ejecucion.
+
+    constexpr (constant expression), se usa como modificador para indicar que es constante
+    y se ejecute en TC:
+
+    constexpr double gravity { 9.8 }; // ok: 9.8 is a constant expression
+    constexpr int sum { 4 + 5 };      // ok: 4 + 5 is a constant expression
+    constexpr int something { sum };  // ok: sum is a constant expression
+
+    La diferencia entre const y constexpr es que const significa que el valor de un objeto 
+    no va a cambiar despues de su inicializacion, ese valor puede ser conocido en TC o en
+    runtime, la evalucion puede ser hecha en runtime. El constexpr significa que el objeto
+    puede ser usado en una expresion constante, el valor de inicializacion tiene que ser 
+    conocido en TC, y este puede ser evaluado en TC o en runtime.
+    Tonces las buenas practicas son:
+    SI UNA EXPRESION ES CONSTANTE, PONELE constexpr
+    Sino, const.
+
+---Manipulacion de bits:
+    Vamos a usar <bitset> para tener el std::bitset<#>
+    En general, cuando laburas con bits, es mejor usar enteros sin signo.
+    Asi no mas, el bitset tiene 4 operaciones clave para manipular bits:
+    var.test(bitAConsultar) --> Te devuelve el valor del bit en x posicion.
+    var.set(bitAConsultar)  --> Pone el bit en 1, si ya estaba, no hace nada.
+    var.reset(bitAConsultar)--> Pone el bit en 0, si ya estaba, no hace nada.
+    var.flip(bitAConsultar) --> Invierte el bit en esa posicion.
+
+    Bitset esta optimizado para la velocidad y no el espacio, el tamaño de bytes
+    necesarios de bitset esta redondeado para arriba mas cerca de sizeof(size_t),
+    que son 4 bytes en 32bits maquinas y 8 bytes en 64bits.
+
+    size() returns the number of bits in the bitset.
+    count() returns the number of bits in the bitset that are set to true.
+    all() returns a Boolean indicating whether all bits are set to true.
+    any() returns a Boolean indicating whether any bits are set to true.
+    none() returns a Boolean indicating whether no bits are set to true.
+
+    Bitwise operaciones: IMPORTANTE: USALOS CON ENTEROS SIN SIGNO O BITS.
+    left shift:		x << y	all bits in x shifted left y bits
+    right shift:	x >> y	all bits in x shifted right y bits
+    bitwise NOT:	~x	    all bits in x flipped
+    bitwise AND:	x & y	each bit in x AND each bit in y
+    bitwise OR:		x | y	each bit in x OR each bit in y
+    bitwise XOR:	x ^ y	each bit in x XOR each bit in y
+
+    Left shift assignment:		x <<= y	Shift x left by y bits
+    Right shift assignment:		x >>= y	Shift x right by y bits
+    Bitwise OR assignment:		x |= y	Assign x | y to x
+    Bitwise AND assignment:		x &= y	Assign x & y to x
+    Bitwise XOR assignment:	    x ^= y	Assign x ^ y to x
+
+    Bit masks o mascaras de bits:
+    Es un conjunto de bits predefinidos que se usa para selecionar
+    que bits especificos van a ser modificados por operaciones 
+    siguientes. Es como cuando queres pintar el marco de una ventana,
+    si no tenes cuidado podes pintar el vidrio, asique le pones cinta 
+    para no afectar, aca es lo mismo, una mascara bloquea a los operadores
+    de bits, haciendo que no puedan tocar los bits que no queremos tocar.
+
+    Las mascaras mas basicas es hacer 8 constantes diferentes donde una posicion
+    es 1 y el resto 0, asi, cuando le haces un AND de bits, solo te puede quedar 
+    distitno el valor en la posicion que tenia un 1 en la mascara, ej:
+    constexpr std::uint8_t mascara1 {0b0000'0001}; --> 
+    Esto es una mascara, el "constexpr" es un detalle para indicar que no va a ser 
+    modificado, no es del todo necesario aca, y es un entero sin signo de 8 bits, ahora,
+    teniendo esta mascara, puedo por ejemplo, consultar el estado del primer bit de cualquier 
+    binario:
+    std::uint8_t numerito {0b1010'0101}; --> Algun numero en binario.
+
+    Y despues te fijas con el AND el primer bit.
+
+    La operacion hace el AND, y ya que la mascara 1 tiene todo en 0 menos el primero, solo
+    me da la info del primero.
+
+    EXTRA: Pixeles de tele, un pixel de tele es la combinacion de 4 datos, cantidade de 
+    rojo, verde, azul y alpha, alpha es transparencia. Si alpha es = 0, es transparente el
+    color, si es 255, opaco, todos estos valores son enteros sin signo de 8 bits. 
+    Se suelen guardar en 32 bits enteros donde se usan 8 bits para cada uno.
+    Por ejemplo, estas son mascaras para leer los colores:
+        constexpr std::uint32_t redBits{ 0xFF000000 };
+        constexpr std::uint32_t greenBits{ 0x00FF0000 };
+        constexpr std::uint32_t blueBits{ 0x0000FF00 };
+        constexpr std::uint32_t alphaBits{ 0x000000FF };
+
+---Declaraciones compuestas (bloques):
+    Es un grupo de 0 o mas declaraciones que son tratadas como una sola por 
+    el compilador, y se hacen abriendo llaves como en el cuerpo de las funciones,
+    {
+        cualquier cosa.
+    } --> Son los bloques del If basicamente.
+    Tiene su scope interior como las funciones.
+
+---Inline functions y variables:
+    Es un proceso donde la funcion llamada es reemplazada por el codigo 
+    de la definicion. Se suele usar para funciones chicas. Cuando tenes una 
+    funcion que es cortita, para calcular algo rapido, puede gastar mas el 
+    copiar los valores, instanciar las variables, inicializar, devolver y 
+    todo eso que la funcion en si, en funciones grandes es despreciable, en 
+    funciones chicas es medio choto. Ese tiempo en el que prepara la funcion,
+    en el que salta de un lugar al otro y prepara todo para empezar se llama 
+    overhead, es tiempo que no trabaja directamente, sino que se pasa preparando 
+    cosas para trabajar, y pueden ser optimizadas muchs veces. Suena a un tipo
+    de optimizacion muy de nicho.
+    Algunos compiladores actuales se fijan que funciones son expandibles de esta 
+    forma y cuales no, y si es beneficioso, porque puede haber casos donde la 
+    funcion se reemplaze por muchas declaraciones y ocupe mas memoria y funque 
+    peor por tener menos.
+    Antiguamente se usaba la palabra clave inline antes de la definicion de 
+    la funcion, pero tiene muchas desventajas asique no se hace mas.
+    Ya que ahora se deja ese trabajo al compilador, la palabra inline se usa 
+    para decir "multiples definiciones son permitidas", haciendo que una inline 
+    function pueda tener multiples definiciones en multiples archivos con ciertas
+    reglas:
+    -El compilador necesita poder ver la definicion entera de la funcion en cada 
+    archivo que la use, osea que, si queres usarla y dejarla abajo del archivo 
+    vas a tener que definirla abajo y poner la forward declaration arriba.
+    -Cada defincion de una inline function externa tiene que ser exactamente la 
+    misma a las otras.
+    La idea es analoga a las variables, y aca recomendacion moderna, si queres tener
+    variables globales constantes, defini en un header la variable asi:
+
+    inline constexpr double pi { 3.14159 }; --> El inline y constexpr hacen 
+                                                las cosas mas copadas.
+
+---Sistemas numericos: Por default, todos los numeros estan en formato decimal.
+
+    Octal: Va hasta el 13, y para aclarar este tipo de 
+    formato, se pone un 0 adelante del resto del numero: 0125 esta en octal. Pero cuando
+    lo imprimis sale decimal, todo lo que salga como output salen en decimal.
+
+    Hexadecimal: hasta el 15, para cambiarlo usas el prefijo 0x adelante del numero,
+    0x14FAB13 esta en hexa.
+
+    Binario: 0 y 1, usan el prefijo 0b para indicar que tipo son, 0b1001001110.
+
+    EXTRA COPADO: Podes separar numeros usando comillas simples si son horrendos a la 
+    vista y lo toma bien --> 2345123 =  2'345'123, muchooooo mas legible.
+
+---Pseudo-random number generators(PRNGs):
+    Son algoritmos que generan secuencias de numeros que simulan el azar. El problema 
+    es que estas secuencias generadas no suelen ser al azar para nada, son deterministicas
+    (contrario al azar), para eso tambien se usan seeds o semillas, que son un valor usado 
+    para definir un estado inicial en un PRNG, un valor de un prng en con una semilla se 
+    llama random seed, se dice que fue seeded.
+    Pero con las seed pasa lo mismo, siguen siendo deterministicas, pero ayuda a tener 
+    variedad, el maximo teorica de secuencias unicas que puede generar un PRNG se determina 
+    segun el numero de bits en el estado del PRNG, un PRNG con 128 bits puede generar 
+    2 elevado 128 distintas. Pero todo depende del estado inicial que es determinado por 
+    la seed, entonces tambien el prng es limitado por la cantidad de seed distitnas que 
+    se puedna generar. 
+    Si a un PRNG con muchos bits no se le provee una cantidad de seed de calidad, se dice 
+    que esta underseeded, puede producir randomness pero su calida esta comprometida, 
+    mas severo el underseeding, mas sufre, puede pasar que haya patrones o relaciones 
+    entre algunos casos, otra posibilidad es que en la generacion de un caso N, un valor 
+    no pueda ser generado (le pasa al algo de mersenne twister, si esta underseededeado 
+    de cierta forma, nunca va a generar el 7 o 13 en los primeros inputs), O la peor de 
+    todas, alguien puede adivinar, deducir o lo que fuera la semilla y hacer trampa 
+    sabiendo que viene.
+    -Un factor de calidad importante de un PRNG es que genere cada numero con aproximadamente 
+    la misma probabilidad, que tenga una distribucion uniforme, sino, va a estar sesgado.
+    Para checkear la uniformidad, se puede usar un histograma, que es un grafico que guarda 
+    cuantas veces fue generado cada numero. Todo los PRNG son periodicos, en cierto punto, 
+    se repiten, se le llamada periodo a la longitud de la secuencia mientras no se repite.
+    Podes sacar de la libreria estandar <random> que tiene 6 familias de PRNG, el unico
+    recomendado es el de Mersenne twister, el resto son tan malos que hay uno que su 
+    recomendacion es No elevado a la No, y tambien de terceros tenemos:
+
+    The Xoshiro family and Wyrand for non-cryptographic PRNGs.
+    The Chacha family for cryptographic (non-predictable) PRNGs.
+
+    Mersenne Twister: En la libreria estandar tenemos el mt19937 que genera numeros 
+    de 32 bit sin signo, y su version de 64 bits, ej:
+
+    #include <iostream>
+    #include <random> // for std::mt19937
+    int main()
+    {
+        std::mt19937 mt{}; // Instantiate a 32-bit Mersenne Twister
+        for (int count{ 1 }; count <= 40; ++count)
+        {
+            std::cout << mt() << '\t'; // generate a random number
+            // If we've printed 5 numbers, start a new row
+            if (count % 5 == 0)
+                std::cout << '\n';
+        }
+        return 0; }
+
+    Y esto printea multiples lineas de numeros al azar generador por el mt, y lo
+    unico raro es como la variable de mersenne se llama mt y para generar los 
+    numeros hace mt(), es una sintatix concisa de mt.operator(), que en estas 
+    funciones esta definido para devolver el siguiente random de la secuencia.
+    Despues, si queremos hacer algo random entre cierto rango, la libreria random
+    tiene funciones para hacer que el numero random este entre un rango que nosotros
+    querramos. (Util para tirar un dado de 6 caras).extra: Una distribucion de 
+    numeros random es solo una probabilidad de designada que toma valores prng 
+    como input. <ramdom> tiene una distribucion muy util que es *uniforme*, que 
+    produce valores entre x e y con misma probabilidad. Si tomamos el programa 
+    de antes cambiamos por la distribucion:
+
+    #include <iostream>
+    #include <random> // for std::mt19937 and std::uniform_int_distribution
+
+    int main()
+    {
+        std::mt19937 mt{};
+        std::uniform_int_distribution die6{ 1, 6 }; --> distribucion uniforme entre 1 y 6
+        for (int count{ 1 }; count <= 40; ++count)
+        {
+            std::cout << die6(mt) << '\t'; // generate a roll of the die here
+            if (count % 10 == 0)
+                std::cout << '\n';
+        }
+        return 0;
+    } 
+    Esto genera 40 numeros random entre 1 y 6.
+    Ahora que tenemos formas de generar, solo falta hacer que multiples llamados no generen 
+    lo mismo, falta encajar una buena seed, y para eso necesitamos algo que no sea estatico,
+    que vaya cambiando para asi modificar los valores, y las mejores opciones son el reloj 
+    del sistema o el dispositivo random del sistema (ni idea que es las segunda).
+
+    -Reljo del sistema: std::time() es el mas simple, y sino, en la libreria estandar existe 
+    <chrono>, que tiene varios reljoes que se pueden usar para generar semillas (me canse de seed),
+    #include <iostream>
+    #include <random> // for std::mt19937
+    #include <chrono> // for std::chrono
+
+    int main()
+    {
+        //SEEDEAMOS EL Mersenne
+        std::mt19937 mt{ static_cast<std::mt19937::result_type>(
+            std::chrono::steady_clock::now().time_since_epoch().count()
+            ) };
+
+        //ACA ABAJO IGUAL QUE ANTES
+        std::uniform_int_distribution die6{ 1, 6 };
+        for (int count{ 1 }; count <= 40; ++count)
+        {
+            std::cout << die6(mt) << '\t'; 
+            if (count % 10 == 0)
+                std::cout << '\n';
+        }
+        return 0;
+    }
+
+    -Random device: En la libreria random, esta el tipo llamado std::random_device,
+    que es un PRNG definido por la implementacion donde labures, lo que hace es 
+    pedirle un numero al azar al sistema operativo y bueno, anda a saber en que se 
+    base para dartelo. El codigo de antes cambia a:
+    std::mt19937 mt{ std::random_device{}() }; --> mt declarado con random_device,
+    y ya que depende del sistema y compilador, es probable que este mas al dia que 
+    otro algoritmo como el de mersenne.
+
+---Testing basico:
+    No se ve mucho, pero aca algo de info.
+    MUCHO MUY IMPORTANTE: Si estas haciendo un programa, por amor a dios, proba las 
+    funciones que hagas, modulariza, no escribas todo y despues cuando falles pases 5 
+    horas viendo que una funcion no da, UNA COSA A LA VEZ, okey, partiendo de esto, 
+    podemos hacer tests simples sacando assert(expresionBool) de #include <cassert>,
+    que cuando una expresion de false, termina el programa usando std::abort, lo cual 
+    no ejecuta todas las funcions de limpieza del programa, las que destruyen objetos 
+    y liberan memoria mas, termina abruptamente y te deja info. USO: Testear funciones 
+    durante la produccion, no en vivo.  El assert tambien tiene su version con static 
+    de palabra clave, lo que significa que eso se evalua en tiempo de compilacion, Y
+    podes usarla sin header, solo static_assert(condicion,mensaje diagnostico), tiene 
+    que ser una expresion constexpr:
+
+    static_assert(sizeof(long) == 8, "long must be 8 bytes");
+
+    TRUCAZO DEL ASSERT: assert(found && "Car could not be found in database");
+
+    Si aparte de la condicion de test, pones un AND y texto, te imprime el textito 
+    si falla en este mismo, lo cual es 5 millones de veces mejor.
+
+    OTRO USO: Manejar features no implementadas, pones un: 
+    assert(casoNoImplementado && "Todavia no fue implementado x cosa");
+
+    IMPORTANTISIMO: Por default, los IDEs suelve venir con un macro llamado NDEBUG,
+    que si esta definido, apaga los asserts en codigo de produccion, no se bien cuando 
+    es codigo de produccion y cuando, pero es importante saber que quizas no te andan 
+    por eso, asique, si queres usar asserts en tu codigo, tenes que indefinir esa directica,
+    tanto como existe #define, tambien esta #undefine, y ya que viene por default en muchos 
+    lares, vos hace:
+
+    #undefine NDEBUG
+
+    Existen frameworks dedicados al testing, se llama unit testing frameworks, y se 
+    dedican a hacerte la vida mas facil para testear funciones, y despues al final 
+    queda lo mas complicado, test integracion, todo junto no tiene que explotar.
+    Code coverage: Describe cuando del codigo es ejecutado cuando se esta testeando,
+    hay muchas metricas distinta para esto:
+    -statement coverage: Se refiere al porcentaje de declaraciones que fueron ejecutadas
+    por las rutinas de testing. Basicamente queres cubrir todas las declaraciones 
+    posibles, ver que todas las declaraciones funcan.
+    -branch coverage: El porcentaje de ramas que fueron ejecutadas, siendo una rama 
+    cada camino posible, por ej, el if se separa en 2 caminos posibibles en general.
+    -Loop coverage: Tambien llamado el test 0 1 2 --> dice que si tenes un loop, 
+    asegurate de que funque con 0 , 1 y 2 iteraciones, es una especie de confianza
+    parecida a la induccion, si funca para estos casos, funca para los siguientes.
+    -Testing de diferentes categorias: Si tomamos parametros o input del usuario,
+    hay que considerar que pasa con inputs de las mismas categorias, osea, mismas 
+    caracteristicas, ej: Si tengo una funcion raiz cuadrada, me puedo fijar con 
+    los enteros y bueno, pero tambien con los casos que podria salir mal, como 
+    serian el 0 o negativos, bla bla bla.
+
+---Manejo de errores:
+    En casos de funciones, siempre puede pasar que alguien o algo no cumpla la 
+    especificacion y rompa todo, por eso, aca hay algunas estrategias que suenan 
+    interesantes para manejar errores:
+    -Si una funcion es void, cambiala por bool, asi, si meten un input que no cumpla
+    con lo pedido, podes hacer que devuelva false, y si cumple, devuelve true:
+    bool printIntDivision(int x, int y)
+    {
+        if (y == 0) --> Si quieren dividir por 0 se meten al if y 
+        {               devuelve false la funcion con mensaje.
+            std::cout << "Error: could not divide by zero\n";
+            return false;
+        }
+        std::cout << x / y;
+        return true;
+    }
+    -Si una funcion tiene tipo a devolver pero no usa todo el rango de ese tipo, 
+    entonces podes devolver algun valor fuera de rango para mostrar que la funcion 
+    salio mal, ej rapido--> Una funcion que le pasas x y devuelve 1/x, usando double, 
+    en este caso, el rango de respuesta va de menos infinito a 0 no inclusive y desde 
+    mas de 0 hasta infitico, basicamente el 0 nunca es solucion, porque dividirias 
+    por 0 y explota la matrix, asique podes devolver 0 para mostrar que anda mal.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

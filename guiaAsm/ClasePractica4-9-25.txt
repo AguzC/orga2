@@ -1,0 +1,346 @@
+Assemblyyyyyyyyyyyyy:
+
+Primer ejercicio:
+Implementar 2 funcioneshaciendo llamadas a C,
+x1 - x2 +x3 - x4. usando 2 funciones quetenes en otro archivo,
+y queremos llamarlas desde assembly. y esta la otra quees de 8 parametros.
+
+Losparametros quetamos usando son de 32bits. Los parametros se van a pasar por los 
+registros, si tuvieramos mas de 4, si se usaria el stack. 
+Los primeros4 param se envian por registros de izquierda a derecha y los demas 
+por stack.
+
+La idea es usar los registros que mas se acercan al tamaño qie vamos a usar,
+aca con 32 bits vamos a usar la version de los registros de 32, 
+EDI, ESI, EDX, ECX
+
+El call agrega automaticamente al stack la direccion despues del call, la 
+direccion del retorno. Esta al tope del stack, el stack pointer apunta 
+ahi. 
+
+El stack pounter siempre apunta al valor al tope de la pila, no a la posicion libre.
+
+Por  convencion, el prerequisito de la pila para poder llamar a la funcion es estar 
+alineada a 16 bytes, osea, el sack pointe tiene que apuntar a una direccion multiplo
+de 16, si lees en hexadecimal, el ultimo digito tieen que ser 0. 
+resumenÑ requisito, pila alineada. Si queres alinearla sin tener algun dato interesante
+que guardar, podes restarle 8 (osea,subir en la pila) y la alineas.
+
+
+
+Osea, cuando pushea la direccion de retorno, que pesa 8, nos desalineo la pila,
+nos podemos fijar eso con gdb, metiendo un breakpoint al principio de la funcion 
+con b nombrefuncionAsm
+
+Aca buscamos el rsp, vamos a ver que en este caso esta desalineada, ta terminando 
+con un 8.
+
+Para alinearla, pusheamosel rbp, la base del stack frame, el stack frame es la 
+porcion del stack que nos pertenece, a la funcion, donde quiero gaurdar las variables.
+
+Y como se cumple la convencio, ya estaba alineado el stack de antes.
+
+Todo lo que este arriba del rbp es parte de mi funcion, var de mi funcion, y abajo 
+no deberia tocarlo, no es mio.
+
+Cuando nos llaman, no sabemos donde esta, le pertenece a otra funcion, a la funcion 
+que nos llamo. Vamos a querer devolverlo despues, porq es el ancla que vamos a usar 
+para encontrar otros recursos que vamos a guardar en el stack, toda variable que 
+guarde en el stack va a ser usada segun su disntacia al base pointer, esa es la 
+convencion, si nosotros no lo devolvemos a la salida, la funcion que nos llamo pierde 
+su ancla, asi que se rompe, por eso pusheamos el base pointer anterior tambien.
+
+Le pusheaste 2 cosas de 8 bytes, asiq 16 bytes, qeuda alineada de nuevo.
+
+Siempre se gaurda un numero constante de bytes, 8, porq estamos en 64bits.
+
+Queremos restar  x1 y x2, usamos la funcion que tenemos hecha en C, usando 
+call, los parametros que letenia que pasar a restarC estan en el lugar indicado
+porq los tenemos en los registros.
+
+y va a devolver su resultado por RAX,siempre se devuelve pora ahi. Siempre los 
+devuelve por ahi. Podes chusmear todo el proceso y resultados a traves de GDB.
+
+Aca tenemos todo limpio en los registros, pero puede pasar que no lo esten.
+
+Ahora hay que sumarle x3, para eso, hay que mover los datos a los registros 
+neccesarios, a X1 hayque ponerle en ESI y edi EAX
+
+Si intentas pushear cosas de menos de 64 bits se rompe, no te deja.
+
+Despues y antes de llamar la funcion es importante guardarse y sacar la info 
+de los registros volatiles, en los call, nada te asegura que mantengan los 
+mismo valores despues de ser llamada.
+
+Para guardarlos podemos guardarlos en las pilas o en registros no volatiles,
+en este ejemplo los guarda en reg no volatiles, RBX Y RB
+
+Hay que tener cuidado de no perder los valores que queriamos, si laburamos 
+con registros no volatiles, entonces esos valores hay que guardarlos en la pila.
+Podes usar los registros para tus valores y guardar los no voaltiles en la pila, 
+o directamente usar la pila.
+Si tuvieras que usar un registro multiples veces, combiene pasar el dato a un
+registro no volatil, sino, guardarlo en memoria ta bien.
+
+Ahora queda restar una vez mas, asiq tenemosque mover los registros de nuevo.
+Y como la funcion devuelve su resultado por EAX, no necesitamos mover nada 
+cuando hacemos el ultimo llamado, solo queda restaurar el stack a su estado,
+y despues el ret lee la direccion donde taba la direccion de retorno, la dejamos,
+es mucho muy importante popear toda la basura que use. El base pointer vuelve 
+a su direccion. 
+
+; parametros:
+; x1 --> EDI
+; x2 --> ESI
+; x3 --> EDX
+; X4 --> ECX
+
+nombreFuncionSuma4UsandoC
+    ;prologo
+    push rbp
+    mov rbp, rsp //movemos el base pointer al valor actual del stack pointer.
+                 //la base se define aca rapidin. No puede ir abajo, sino las variables
+                 //no estarian quedando por encima del stack.
+    pushr12
+    push RBX
+
+    mov ebx, EDX; -> x3, los guardamos en reg no volatiles asi se mantienen.
+    mov r12d, ECX -> x4
+
+    call restar_c
+
+    mov esi, EAX // le estamos pasando como sgundo parametro a eso
+    mov esi, ebx
+    call sumar_c // llamado a funcion
+
+    mov edi, EAX
+    mov esi, r12d
+
+    call restar_c 
+
+
+    ;epilogo
+    pop RBX
+    pop r12
+    pop rbp // para devolver su valor
+    ret
+
+Segundo ejercicio: Igual al anterior pero con 8 parametros.
+
+Tenemos que meter de forma inversa los parametros que no entran en registros, 
+asiq va 8 y despues 7, asiq la funcion los puede sacar en orden. Quedan por debajo
+de la direccion de retorno.
+
+Para leer las variables en mem, usamos el base pointer + algo, en este caso
+leer x7 es BP + 16, X8 es BP + 24, en BP + 8 esta la el Return Addres.
+Estos 2 valores estan  "seguros", no hay funcion que modifique la pila de una 
+funcion anterior suya, solo laburan desde donde estan en adelante, asiq vas a poder
+laburar con ellos con seguridad de que no van a ser modificados por nadie.
+
+Para el resto, cuando haga el llamado de las funciones, voy a tener quegaurdar sus valores
+en reg no volatiles y pushear esos los valores anteriores, o directamente pushear el valor 
+de los registros y fue. Aca ya que la funcion usa 2 param no mas, tenemos que guardar 
+los reg apartir de x3 a x6.
+
+Si quiero acceder a x3, uso BP - 8, lo pusheamos primero justo despues del BP.
+Y los otros de igual forma, - 16, -24, -32. 
+
+como son volatiles, no hay necesidad de poopearlos a sus registros de nuevo, 
+solo movemos el stack pointer de nuevo a donde estaba con una suma o un mov.
+Hago mov rsp ,rbp
+
+; parametros:
+; x1 --> EDI  siguenconvencion, igualque antes
+; x2 --> ESI
+; x3 --> EDX
+; X4 --> ECX
+; X5 --> R8D
+; X6 --> R9D
+; X8 --> [RBP + 16]
+; X7 --> [RBP + 24]
+
+funcion
+    ;prologo
+    push rbp
+    mov rbp, rsp
+
+    push rdx
+    push rcx
+    push R8 
+    push r9 
+
+    call restar_c
+
+    mov edi, EAX
+    mov esi, [rbp -8] // Como es una direccion de mem, va en corchetes
+
+    call sumar_c
+
+    mov edi, EAX
+    mov esi, [rbp - 16]
+    call restar_c
+
+    mov edi, EAX
+    mov esi, [rbp - 24]
+    call sumar_c
+
+    mov edi, EAX
+    mov esi, [rbp - 32]
+    call restar_c
+
+    mov edi, EAX
+    mov esi, [rbp + 16] // Estos son los que estaban abajo del stack porq no entraban
+    call restar_c       // en registros.
+
+    mov edi, EAX
+    mov esi, [rbp + 24]
+    call restar_c
+
+
+    ;epilogo
+    mov rsp ,rbp
+    pop rbp
+    ret
+
+
+
+
+MAKEFILE:
+
+Le pasamos todoslos archivos objetos  para compilar, la implemtancion de C
+y la implemtancion de assembly. El linker se encarga de todo lo demas.
+
+Pa un archivo de assembly se usa NASM, no GCC.
+
+Ejercicio2.c) de integradores:
+En un turno el jugador puede ubicar en una cuadricula clases distintas, 
+que cada una tiene combustible que se usara. Aparte el jguador tiene 
+reserva de combustible que puede usar para repartir de la forma que quiera 
+entre los demas.
+
+El sist funca asi: En el turno:
+-Se puede instanciar muchas clases, cada una es un struct.
+-Termian el turno, se fija que se haya puesto nafta correcta segun el jugador. bla bla bla
+
+Mapa 255x255
+unidades: Punteros dentro del mapa.
+tpyedef attaclunit_t *mapa_t[255][255] es una matriz de punteros a unidades de ataque.
+Es quialente a mapa[16025] posiciones, es la tira de memoria esta.
+= typedef (attau_t*) mapa_t[24]4[22s]
+
+Las unidades van a quedar guardadas a punteros de structs individuales.
+Hay unidades que van a terminar siendo exactamente iguals, porq no le paso nada.
+Vemos que 2 unidades son iguales si el resultado de su funcion de hash es igual.
+Queremos que cuando termine el turno, se corra la optimizacion, dodne todas las unidades 
+equivalente se reemplacen por una sola.
+Las instancias que queden con referencia 0 deberian ser liberadas, solo te quedas apuntando
+a una instancia no mas.
+
+c) Fase de batalla, si se modifica el combustible de una instancia optimizada, entonces 
+necesitas crear otra instancia de esa, y modificar esa particularmente, se vuelve otro 
+tipo de elmento segun su hash. 
+Tenemos que desoptimizar, creas y modificas la copia modificada.
+Eso es lo que tenemos que hacer, dada una posicion en el mapa, hay qe dar la funcion 
+modificar que dada esa posicion, modifique esa unidad. De no haber una unidad en 
+la posicion identificada, no se hace nada.
+
+
+Podesdecirle a un struct que este empaquetados o no, usando padding. Pa optimizaciones 
+y cosas de C.
+Cada elemento de un struct esta alineado a su propio tam, el struct completo si esta 
+alineado a la alineacion mas grande de sus atributos. En este caso, tiene que ser 
+multiplo de 2 por el unint16_t.
+
+-offset de clase,(el array de cahrs) es 0 a 10, [0,10], son 11 elementos, y esta 
+alineado a 1 por sus elementos.
+
+-offset de combustible, arranca en el 12, porq 11 no es alineado a 2. aisq [12,14)
+
+-offset references: Esta alineado a 1 byte, nunca estan desalineados, asiq arranca 
+de una donde esta, [14,15), osea, [14].
+
+-El struct pesa 16 bytes, porq 15 no es multiplo del tipo de dato mas grande, que en 
+este caso esta en multiplos de 2 por el uint16_t, quedando en 16, un poquito de padding.
+
+Todo esto pasa porq el struct no esta empaqueato. podes usar __packed__() o algo asi
+para empaquetarlo. En ese caso, el tam es la suma de los atributos.
+
+void modificarUnidad(mapa_t mapa, uint8_t x, uint8_t y, void *fun_modificar) {
+
+
+    attackunit_t* to_modify = mapa[x][y];
+    //attackunit_t* to_modify = mapa + x*255 + y; version con offset
+
+    //Primero nos fijamos si hay algo o no en la posicion.
+
+    if (to_modify == 0){
+        return;
+    }
+    //srgeundo, nos fijamos si las referencias dicen que solo hay una unica copia
+    //osea, no hay que crear nada, solo modificas esa.
+    //Solo tenemos que usar la funcion de aumentar.
+    if (to_modify_.references == 1) {
+        fun_modificar(to_modify);
+    } else {
+        to_modify->references -= 1; 
+
+        attackunit_t* individual = (attackunit_t*) malloc(sizeof(attackunit_t)); 
+
+        // Reservamos  la mem para el struct nuevo, y tenemos el puntero para esa direccion. 
+        //El casteo despues de la asginacion aca es al pedo, porq estamos aclarando que es 
+        //de tipo attackunit_t* por la defincion.
+
+        //Si nuestro struct tuviese campos de peso dinamico,y quisiesemos completar estos,
+        //tenemos que hacer malloc de eso, onda, esa cosa dinamica tiene que ser un puntero 
+        //dentro del struct, y cuando le asignamos algo a ese puntero, vamos a tener que 
+        //reservarle en el momento de asgiancion el malloc.
+
+        // LA FLECHITA DESREFENRENCIA.
+
+        individual->combustible = to_modify->combustible;
+        individual->references = 1;
+        
+        //Los strings de C tienen el caracter nulo al  final, y aca podemos asumir que 
+        //termina en el caracter nulo, y nos dejan usar strcpy, que toma un cacho de mem
+        //que toma termina en 0 y lo copia en otro lado. Si no terminase en 0, tonces 
+        //strcpy copiaria lo que hay en mem hasta que encuentre un 0.
+        //Sino terminase en 0, o no lo sabes, podes usar strncpy,al cual le pasas el tam
+        //que queres o sino la cantidad que qures que copie. y si tiene menos, copia hasta
+        //el 0.
+
+        mapa[x][y] =individual;
+
+        //Modifico la copia
+        fun_modificar(individual);
+
+
+    }
+    return;
+}
+Parte 2, pasala a asm
+1. Tenemos que encontrar bien la direccion de memoria de mi pos de mem.
+Tenemos que multiplicar por 8 que es el tam de los elementos de la matriz 
+
+limpio x e y.
+
+push rbp
+mov rbp,rsp
+
+push r12 al 15 Estos son multiples intrusccione.
+
+256 es 2**8, multiplico por 2 es lo mismo que shiftear un bit a la izquierda,
+si a x lo shifteo 8 bits, es x* 256, y le resto 1, asi tengo
+
+Para moverme en la matriz tengo que poner los offset y tener en cuenta el tam del 
+puntero.
+
+;me fijo si es 0
+.cmp rx ,0
+je .fin
+
+.revisar cant referencias
+Para referencias, hace un macro arriba que valga eso.
+
+mov dil, byte[rax + sssss]
+
+xor de un registro de simismo, lo pone todo en 0.
