@@ -1,2 +1,124 @@
 Assemblyyyyyyyyyyyyy:
 
+Tenemos muchosss registrosÑ
+
+-16 copados que vamos a usar mucho:
+
+64 bits -> Empizan con R, y los que son con numero (R8 A R15), no tienen ningun sufijo
+
+32 bits -> Los sin numerar empiezan con E (EAX..), y los numerados empiezan con R 
+y terminan con D, son RxD , con x = [8,15].
+
+16 bits -> Los sin numerar empiezan con letras distintas de E o R, y los 
+numerados empiezan con R y terminan con W (word maybe?), quedando en 
+RxW con x = [8,15].
+
+8 bits mas altos -> Solo hay 4, AH BH CH DH
+
+8 bits mas bajos -> Los sin numeras empiezan con su letra que los identifica,
+A B C.. y asi, y terminan con L, AL BL CL DL, y los numerados empiezan con 
+R y terminan con B, quedando RxB x = [8,15]
+
+Lo importante de todo esto es que los diferentes tamaños de registros viven 
+todos  dentro de uno solo fisico, son accesos a esos bits de un registro.
+RAX, EAX, AX, AH Y AL viven todos dentro del mismo.
+
+-16 de mas adelante:
+
+Los XMM0 al XMM15, los registros simple instruccion multiple data, operan
+tanto con punto flotante como con enteros, son de 128 bits y podes hacer 
+cuentas de 4 numeros a la vez  (de 32 bits).
+
+-Los de segmentos: No los tocamos todavia, pero son los que definen 
+las direcciones de un segmento.
+
+=========
+
+%define SYS_WRITE 1     ;;
+%define SYS_EXIT 60     ;; Directivas de preprocesador como en C, vamos a usarlas
+%define STDOUT 1        ;; bastantes. Aca las usamos como macro para valores.
+
+section .data           ;;--> Directiva de ensamblador          ;;
+msg db '¡Hola Mundo!', 10   ;;--> Pseudo-instrucciones          ;; Sección .data datos del programa.
+
+define que debe haber un espacio de memoria identificado con la etiqueta msg, definido
+de a bytes (db = define bytes), con los siguientes valores '¡Hola Mundo!', 10. Luego,
+toda aparición de msg en el código será reemplazada por el puntero al comienzo de esa
+tira de bytes. (el byte 10 se correspone a un salto de línea)
+
+len EQU $ - msg             ;;                                  ;; 
+
+es similar pero no se almacena nada en memoria, se calcula el valor declarado después de la 
+palabra EQU al momento de ensamblar, y se reemplazan las apariciones de len por el valor 
+resultante. $ hace referencia a la posición de memoria en la que se está actualmente, luego, 
+al restarle msg, obtenemos la cantidad de posiciones de memoria (bytes) que hay entre len y msg. 
+Es decir, cada aparición de len se reemplaza por la longitud de lo declarado en msg (en este caso, 13).
+Calculamos la longitud.
+
+global _start           ;;--> Directivas de ensamblador4
+
+es una directiva que indica que el siguiente símbolo, en este caso _start,debe poder
+ser identificado por fuera de este archivo, es decir, una vez ensamblado se debe poder 
+hacer referencia a _start desde otra pieza de código, y un linker debe poder establecer
+esa conexión.
+
+section .text           ;; Seccion de codigo del programa       ;;
+_start:                                                         ;;
+    mov rax, SYS_WRITE                                          ;;
+    mov RDI, STDOUT                                             ;;
+    mov rsi, msg                                                ;;
+    mov rdx, len                                                ;; Sección .text
+    syscall                                                     ;;
+                                                                ;;
+    mov rax, SYS_EXIT                                           ;;
+    mov rdi, 0                                                  ;;
+    syscall                                                     ;;
+
+
+Hay instrucciones sin operandos, que pueden ser o no implicitos, como 
+es ret. Con un unico operando, que puede ser un reg, pos de mem, inmediato.
+Ej: jmp .fin salta a la etiqueta .fin, call foo llama a la funcion foo.
+
+2 operandos: El primero suele ser el destino "dst" y el segundo la fuente "src"
+Los pares dst-src pueden ser registro-memoria, registro-registro, memoria-registro,
+registro-inmediato y memoria-inmediato. Nótese como no es posible un par memoria-memoria, 
+las lecturas siempre deben acabar en un registro y las escrituras siempre deben partir de 
+uno o bien de un valor inmediato.
+
+Los inmediatos pueden ser:
+Decimales: 200
+Hexadecimales
+con el prefijo 0x: 0xC8 o con el prefijo 0h: 0hC8
+Octales, con el prefijo 0q: 0q310
+Binarios: con el sufijo b: 11001000b o con el prefijo 0b, que permite guiones: 0b1100_1000
+
+El mejor metodo es, si ya conoces la operacion, buscarla rapido en felixcloutier, o sino,
+irte al indice del segundo volumen del manual de intel y chusmear ahi. Tienen una despcripcion 
+de lo que hacen y un pseudo codigo que lo acompaña donde dice "operation".
+En la tabla de opcode con lo demas, nos interesa la columna de instruction, que nos muestra 
+la sintaxis. En la columna 64 bits nos interesa que diga valid.
+
+Cuando queremos definir datos a mano desde assembler, vamos a necesitar usar pseudo-instrucciones, acá van algunas:
+
+db 0x55                                 ; define sólo un byte, 0x55
+db 0x55,0x56,0x57                       ; 3 bytes sucesivos
+db 'a',0x55                             ; 0x97, 0x55
+db 'hello',13,10,'$'                    ; strings como cadenas de bytes, cada caracter es un byte
+db `hola\nmundo\n\0`                    ; strings con "C-style \-escapes"
+dw 0x1234                               ; define una word, los bytes quedan: 0x34 0x12 (por little-endianness se guarda primero el byte menos significativo)
+dd 0x12345678                           ; define una double word, los bytes quedan: 0x78 0x56 0x34 0x12
+dq 0x123456789abcdef0                   ; define una quad word,constante de 8 bytes
+times 4 db 'ja'                         ; define 4 veces la tira de bytes 'ja', quedando "jajajaja"
+
+Recuerden que para acceder a los valores declarados podemos incluir un nombre 
+de etiqueta antes de la directiva de declaración (risa times 4 db 'ja').
+
+Ensamblar: Usamos NASM, tiene muchos formatos de salidas porq tiene distintas versiones, nosotros 
+usamos (en linux) elfx32, elf32 y elf64, que generan formato de salida ELF32,  DLF64 en los 
+archivos objeto. 
+
+$ nasm -f elf64 -g -F DWARF HolaMundo.asm   --> Para crear el .o (binario)
+
+$ ld -o HolaMundo HolaMundo.o  --> Lo linkeamos
+
+$ ./HolaMundo  --> Lo ejecutamos
