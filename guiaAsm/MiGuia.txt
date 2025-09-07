@@ -1,5 +1,8 @@
 Assemblyyyyyyyyyyyyy:
 
+=================================Parte1 ASM====================================================
+
+
 Tenemos muchosss registrosÑ
 
 -16 copados que vamos a usar mucho:
@@ -122,3 +125,221 @@ $ nasm -f elf64 -g -F DWARF HolaMundo.asm   --> Para crear el .o (binario)
 $ ld -o HolaMundo HolaMundo.o  --> Lo linkeamos
 
 $ ./HolaMundo  --> Lo ejecutamos
+
+=================================Parte2 ASM====================================================
+
+
+ABI: Aplication Binary Interface, son contratos que definen como llamar a una funcion de C 
+y el uso de los registros junto con el stack, sino lo cumplimos nostros voluntariamente, 
+rompemos todo.
+
+(Decimos que un dato está alineado a N bytes cuando la dirección de memoria dónde está almacenado es múltiplo de N)
+
+La ABI que usamos define dos convenciones:
+
+En x86-64/Linux (64bits) se denomina System V AMD64 ABI  --> Primera mitad de la materia
+En x86/Linux (32bits) se denomina System V i386 ABI      --> Segunda mitad.
+
+Convención de llamadas: Define en qué registros o posiciones de memoria deben estar los
+parámetros para llamar a una función (o donde esperarlos, desde el punto de vista de la función llamada).
+
+-En 32 bits, los parámetros se pasan pusheados a la pila de derecha a izquierda.
+
+-En 64 bits, los parámetros se pasan por distintos registros según su tipo:
+
+Enteros y punteros se pasan por RDI, RSI, RDX, RCX, R8 y R9 (de izquierda a derecha).
+Flotantes se pasan por XMM0, XMM1, ... , XMM7 (de izquierda a derecha).
+
+Para todos los tipos, si se agotan los registros antes mencionados (hay más pero no forman parte de 
+la convención, por ejemplo los XMM del 8 al 15), se pasarán por la pila pusheando de derecha a izquierda¹.
+
+En qué registro esperar el valor de retorno de la función llamada (o donde escribirlo, desde el punto de 
+vista de la función llamada).
+
+En 32 bits, el valor de retorno se espera en EAX.
+En 64 bits, el valor de retono se espera en RAX, si es un entero o puntero, y en XMM0 si es un flotante.
+
+Tanto en 32 como en 64 bits, la pila debe estar alineada a 16 bytes al momento de llamar a una función de C. 
+¿Por qué? Hay funcioes que hacen uso operaciones de registros largos (XMM, YMM) que requieren datos alineados a 16 bytes.
+
+
+-Convención de registros
+
+No volatiles o callee-saved: 
+La función llamada debe encargarse de que, al terminar, estos registros tengan los mismos 
+valores que al comienzo. Estos son:
+
+En 64 bits: RBX, RBP, R12, R13, R14, R15. (y los de segmentos)
+En 32 bits: EBX, EBP, ESI, EDI
+
+volatiles o caller-saved: La función llamada no tiene obligación de conservarlos, si los
+quiere debe conservalos la función llamadora.
+
+Menciones especiales:
+
+RSP/ESP se puede considerar como un registro no volátil dada su función específica como tope de la pila.
+
+R10 y R11 no están ni en el grupo de los registros por los que se pasan parámetros ni en el grupo de
+los registros no volátiles, no se olviden de su existencia.
+
+XMM8 a XMM15 no están en el grupo de los registros por los que se pasan parámetros pero están
+a disposición, no se olviden de su existencia.
+
+-Stack frame:
+
+El stack frame es la porción de la pila que le corresponde a una función durante su ejecución. 
+Está delimitado por el puntero en el registro RBP, que corresponde a la base de la pila y en cuya
+posición se encuentra el puntero a la base de la pila de la función llamadora, y el puntero en el 
+registro RSP, que corresponde al tope de la pila y es el que usan las instruciones 
+PUSH, POP, CALL y RET (entre otras), para interactuar con la pila.
+
+PUSH decrementa el valor de RSP (le resta 8 al puntero, recordemos que la pila "crece hacia abajo", o sea, 
+crece hacia direcciones más chicas) y luego escribe sobre la posición a la que apunta.
+
+POP primero lee el valor almacenado en la posición apuntada por el RSP y luego incrementa su valor (le suma 8 al puntero).
+ej: pop  rbp, busca el stack pointer, lo que se encuentre ahi lo escribe sobre el registro que le pases, 
+en este caso el base pointer, y le suma 8 al stack pointer (a efectos de stack, baja el stack).
+
+CALL realiza un PUSH de la dirección de retorno y luego escribe la dirección de salto al RIP.
+
+RET realiza un POP de la dirección de retorno y la escribe en el RIP.
+
+Importante: Ya que el llamada de una funcion se hace con un call, que es un push de la return addres, 
+tonces la pila va a  estar desalineada.
+
+Prologo: Aca alineamos la pila mientras que establacemos la base del staack frame. Pusheamos el valor actual de RBP que 
+contiene el puntero a la base del stack frame de la función llamadora, y luego asignamos el valor del RSP actual al RBP 
+como nueva base. En esta sección también estarían los push de los registros no volátiles que querramos usar, para así 
+preservar los valores que corresponden a la función llamadora.
+
+Epilogo: Aca restauramos  los valores de los reg no volatiles quepreservamos en el prologo, popeandolos
+en orden contrario al que los pusheamos,  Esto incluye al base pointer, el primer reg no volatil pusheado,
+que recupera el valor de la base del stack de la función anterior y deja al RSP apuntando al mismo lugar al 
+que apuntaba al ejecutarse la primer instrucción. Dadas esas condiciones, el RET puede recuperar correctamente 
+el valor de retorno, y la función llamadora retomar su ejecución.
+
+
+
+
+Cuando me mandan un call, meti en el stack la return adress, que deberia ser la direccion del call + 8 (en 64 bits) y 
+modifica el instruccion pointer para que salte al lugar donde ta. Hasta aca, tengo el stack con un +8, desalineadisimo,
+por lo que, empieza el epilogo, donde alineamos y establecemos el stack frame. Primero, pusheamos el valor del bp 
+al stack, +8, que asi no mas, tamos alineados de nuevo, y despues le decimos al base pointer := stack pointer, asi, 
+tengo debajo el base pointer original y la return addres, y si quisiera usar registros NO volatiles, tonces 
+voy a tener que almacenar sus valores en el stack, teniendo en cuenta el alineamiento, si solo pusheo 1 reg,
+toy desalineandolo. Despues, viene la funcion, y despues, el epilogo, donde restauro todo, primero restaurando con pop
+el valor de los reg no volatiles que use, en orden inverso a como los pushee antes, si antes el primer push fue
+el base pointer, ahora es el ultimo, por como funca el stack, que si pop el primer valor del stack al base  pointer,
+le toy asignando el valor del ultimo parametro que meti por ahi, y despues de popeado el base pointer, haces el ret,
+que basicamente, despues de pop el base pointer, volvi a mi base de antes de llamada la funcion, y lo que esta al 
+tope de la pila es la return addres que tocaba, asiq, popea eso en el instruction pointer y vuelve al codigo.
+
+Codigo con funciones de C:
+
+0. Importalas antes de las secciones: 
+;importamos las funciones de C que queremos usar
+extern sumar_c 
+extern restar_c
+
+;########### SECCION DE DATOS
+section .data
+
+;########### SECCION DE TEXTO (PROGRAMA)
+section .text
+
+
+1. Siempre anotar en que registros o posiciones de memoria estan tus parametros de entrada antes de 
+empezar la funcion. (10 veces mejor tenerlo a mano que en la cabeza)
+
+uint32_t alternate_sum_4(uint32_t x1, uint32_t x2, uint32_t x3, uint32_t x4);
+
+; parametros: 
+; x1 --> EDI      Es EDI porq  es 32bits.
+; x2 --> ESI      
+; x3 --> EDX
+; x4 --> ECX
+
+alternate_sum_4:
+
+  sub EDI, ESI
+  add EDI, EDX
+  sub EDI, ECX
+
+  mov EAX, EDI
+  ret
+
+Importante: En vez de usar los reg de 64, usamos los mas acomodados al tam del 
+dato, en este caso, los primeros 32 bits, porq podria haber basura en los bits 
+altos. Poer aun, hay que tener en cuenta que los mov entre regs de 32 no limpian 
+los bits altos, cosa que los regs menores a 32 si hacen???.
+
+Aca como la funcion es chiquitita, no necesita el stack frame, pero en general 
+es una buena practica hacerlo siempre igual.
+
+Ahora la hacemos usando C:
+
+;prologo
+  push RBP ;pila alineada
+  mov RBP, RSP ;strack frame armado
+  push R12
+  push R13	; preservo no volatiles, al ser 2 la pila queda alineada
+
+  mov R12D, EDX ; guardo los parámetros x3 y x4 ya que están en registros volátiles
+  mov R13D, ECX ; y tienen que sobrevivir al llamado a función
+
+  call restar_c 
+  ;recibe los parámetros por EDI y ESI, de acuerdo a la convención, y resulta que ya tenemos los valores en esos registros
+  
+  mov EDI, EAX ;tomamos el resultado del llamado anterior y lo pasamos como primer parámetro
+  mov ESI, R12D
+  call sumar_c
+
+  mov EDI, EAX
+  mov ESI, R13D
+  call restar_c
+
+  ;el resultado final ya está en EAX, así que no hay que hacer más nada
+
+  ;epilogo
+  pop R13 ;restauramos los registros no volátiles
+  pop R12
+  pop RBP ;pila desalineada, RBP restaurado, RSP apuntando a la dirección de retorno
+  ret
+
+
+Si tenes mas datos que registros no volatiles, los podemos mandar al stack y guardarlos
+en una posicion fija respecto de la base o sino pusheandolos antes del llamado
+y popeandolos despues. Conviene antes que popear y pushear mucho en momentos precisos,
+dejarlos en una posicion fija a traves de la funcion y usarlo cuando lo necesitemos.
+
+alternate_sum_4_using_c_alternative:
+  ;prologo
+  push RBP ;pila alineada
+  mov RBP, RSP ;strack frame armado
+  sub RSP, 16 ; muevo el tope de la pila 8 bytes para guardar x4, y 8 bytes para que quede alineada
+
+  mov [RBP-8], RCX ; guardo x4 en la pila
+
+  push RDX  ;preservo x3 en la pila, desalineandola
+  sub RSP, 8 ;alineo
+  call restar_c 
+  add RSP, 8 ;restauro tope
+  pop RDX ;recupero x3
+  
+  mov EDI, EAX
+  mov ESI, EDX
+  call sumar_c
+
+  mov EDI, EAX
+  mov ESI, DWORD [RBP - 8] ;leo x4 de la pila
+  call restar_c
+
+  ;el resultado final ya está en EAX, así que no hay que hacer más nada
+
+  ;epilogo
+  add RSP, 16 ;restauro tope de pila
+  pop RBP ;pila desalineada, RBP restaurado, RSP apuntando a la dirección de retorno
+  ret
+
+
+GDB: De nuevo.

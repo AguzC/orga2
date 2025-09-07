@@ -27,7 +27,6 @@ resumenÑ requisito, pila alineada. Si queres alinearla sin tener algun dato int
 que guardar, podes restarle 8 (osea,subir en la pila) y la alineas.
 
 
-
 Osea, cuando pushea la direccion de retorno, que pesa 8, nos desalineo la pila,
 nos podemos fijar eso con gdb, metiendo un breakpoint al principio de la funcion 
 con b nombrefuncionAsm
@@ -101,7 +100,7 @@ nombreFuncionSuma4UsandoC
     mov rbp, rsp //movemos el base pointer al valor actual del stack pointer.
                  //la base se define aca rapidin. No puede ir abajo, sino las variables
                  //no estarian quedando por encima del stack.
-    pushr12
+    push r12
     push RBX
 
     mov ebx, EDX; -> x3, los guardamos en reg no volatiles asi se mantienen.

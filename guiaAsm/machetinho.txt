@@ -1,0 +1,31 @@
+; PARAMETROS ENTEROS: foo(x1,..,x8);
+; x1 --> RDI EDI DI  DIL (64,32,16,8 bits)
+; x2 --> RSI ESI SI  SIL
+; x3 --> RDX EDX DX  DL
+; X4 --> RCX ECX CX  CL
+; X5 --> R8  R8D R8W R8B
+; X6 --> R9  R9D R9W R9B
+; X8 --> [RBP + 16]
+; X7 --> [RBP + 24]
+
+; PARAMETROS FLOTANTES: foo(x1,..,x8);
+; x1 --> XMM0  siguenconvencion, igualque antes
+; x2 --> XMM1
+; x3 --> XMM2
+; X4 --> XMM3
+; X5 --> XMM4
+; X6 --> XMM5
+; X7 --> XMM6
+; X8 --> XMM7
+
+;PARAM INTERCALADOS: Se completan como los de arriba
+segun su tipo.
+
+RESULTADO: En entero o puntero: RAX, EAX, AX, AH, AL
+           En flotante: XMMO0
+
+NO VOLATILES 64: RBX, RBP, R12 ,  R13 , R14 , R15 .
+NO VOLATILES 32: EBX, EBP, R12D,  R13D, R14D, R15D.
+NO VOLATILES 16: BX , BP , R12W,  R13W, R14W, R15W.
+NO VOLATILES 8L: BL , BPL, R12B,  R13B, R14B, R15W.
+
