@@ -29,6 +29,7 @@ alternate_sum_4:
 
   mov EAX, EDI
   ret
+;
 
 ; uint32_t alternate_sum_4_using_c(uint32_t x1, uint32_t x2, uint32_t x3, uint32_t x4);
 ; parametros: 
@@ -94,46 +95,185 @@ alternate_sum_4_using_c_alternative:
   add RSP, 16 ;restauro tope de pila
   pop RBP ;pila desalineada, RBP restaurado, RSP apuntando a la dirección de retorno
   ret
-
+;
 
 ; uint32_t alternate_sum_8(uint32_t x1, uint32_t x2, uint32_t x3, uint32_t x4, uint32_t x5, uint32_t x6, uint32_t x7, uint32_t x8);
-; registros y pila: x1[?], x2[?], x3[?], x4[?], x5[?], x6[?], x7[?], x8[?]
+; x1 --> EDI
+; x2 --> ESI
+; x3 --> EDX
+; x4 --> ECX
+; x5 --> R8D
+; x6 --> R9D
+; x7 --> [rbp + 16]
+; x8 --> [rbp + 24]
 alternate_sum_8:
 	;prologo
+  push rbp      ;Alineo la pila
+  mov rbp, rsp  ;Stack frame armao
 
-	; COMPLETAR
+	;cuerpo
+  push rdx ;[rbp - 8]  me guardo x3 a x6 en el stack
+  push rcx ;[rbp - 16] importante acordarse que no podes pushear
+  push r8 ;[rbp - 24]  a la pila cosas de 32 bits, asiq tenes que 
+  push r9 ;[rbp - 32]  usar todo el reg de 64.
 
+  call restar_c  ;x1 - x2 = eax
+  mov edi, eax
+  mov esi, [rbp - 8]
+
+  call sumar_c   ;(x1 - x2) + x3
+  mov edi, eax
+  mov esi, [rbp - 16]
+
+  call restar_c  ;((x1 - x2) + x3) - x4
+  mov edi, eax
+  mov esi, [rbp - 24]
+
+  call sumar_c   ;(((x1 - x2) + x3) - x4) + x5
+  mov edi, eax
+  mov esi, [rbp - 32]
+
+  call restar_c  ;((((x1 - x2) + x3) - x4) + x5) - x6
+  mov edi, eax
+  mov esi, [rbp + 16]
+
+  call sumar_c   ;(((((x1 - x2) + x3) - x4) + x5) - x6) + x7
+  mov edi, eax
+  mov esi, [rbp + 24]
+
+  call restar_c  ;((((((x1 - x2) + x3) - x4) + x5) - x6) + x7) - x8 = eax
+  
 	;epilogo
+  mov rsp, rbp ;Ya que eran reg volatiles, no los restauro
+  pop rbp
 	ret
+;
 
 
 ; SUGERENCIA: investigar uso de instrucciones para convertir enteros a floats y viceversa
-;void product_2_f(uint32_t * destination, uint32_t x1, float f1);
-;registros: destination[?], x1[?], f1[?]
+;void product_2_f(uint32_t* destination, uint32_t x1, float f1);
+;destination --> edi
+;x1          --> esi
+;f1          --> xmm0
 product_2_f:
-	ret
+  ;prologo
+  push rbp
+  mov rbp, rsp
+
+  CVTSI2SD xmm1, esi ;(float) x1
+
+  CVTSS2SD xmm0, xmm0;(double) f1
 
 
-;extern void product_9_f(double * destination
+  mulsd xmm0, xmm1   ; x1 * f1
+
+  CVTTSD2SI esi, xmm0 ; (int) (x1 * f1)
+  mov [rdi], esi     ; ponelo alla v.2
+
+  ;epilogo
+  pop rbp
+  ret
+;
+
+
+
+;extern void product_9_f(double* destination
 ;, uint32_t x1, float f1, uint32_t x2, float f2, uint32_t x3, float f3, uint32_t x4, float f4
 ;, uint32_t x5, float f5, uint32_t x6, float f6, uint32_t x7, float f7, uint32_t x8, float f8
 ;, uint32_t x9, float f9);
-;registros y pila: destination[rdi], x1[?], f1[?], x2[?], f2[?], x3[?], f3[?], x4[?], f4[?]
-;	, x5[?], f5[?], x6[?], f6[?], x7[?], f7[?], x8[?], f8[?],
-;	, x9[?], f9[?]
+;registros y pila:
+
+;destination  -> Rdi, PUNTERO
+;x1 -> esi
+;f1 -> xmmo0
+;x2 -> edx
+;f2 -> xmm1
+;x3 -> ecx
+;f3 -> xmm2
+;x4 -> r8d
+;f4 -> xmm3
+;x5 -> r9d
+;f5 -> xmm4
+;x6 -> [rbp +16]
+;f6 -> xmm5
+;x7 -> [rbp +24]
+;f7 -> xmm6
+;x8 -> [rbp +32]
+;f8 -> xmm7
+;x9 -> [rbp +40]
+;f9 -> [rbp +48]
+
 product_9_f:
 	;prologo
 	push rbp
 	mov rbp, rsp
 
+  push r12
+  push r13
+  push r14
+  push r15
+
 	;convertimos los flotantes de cada registro xmm en doubles
 	; COMPLETAR
+  CVTSS2SD xmm0, xmm0
+  CVTSS2SD xmm1, xmm1
+  CVTSS2SD xmm2, xmm2
+  CVTSS2SD xmm3, xmm3
+  CVTSS2SD xmm4, xmm4
+  CVTSS2SD xmm5, xmm5
+  CVTSS2SD xmm6, xmm6
+  CVTSS2SD xmm7, xmm7
+  MOVSS xmm8, [rbp + 48]
+  CVTSS2SD xmm8, xmm8
 
 	;multiplicamos los doubles en xmm0 <- xmm0 * xmm1, xmmo * xmm2 , ...
 	; COMPLETAR
 
+  MULSD xmm0, xmm1
+  MULSD xmm0, xmm2
+  MULSD xmm0, xmm3
+  MULSD xmm0, xmm4
+  MULSD xmm0, xmm5
+  MULSD xmm0, xmm6
+  MULSD xmm0, xmm7
+  MULSD xmm0, xmm8
+
 	; convertimos los enteros en doubles y los multiplicamos por xmm0.
 	; COMPLETAR
+
+  CVTSI2SD xmm1, esi
+  CVTSI2SD xmm2, edx
+  CVTSI2SD xmm3, ecx
+  CVTSI2SD xmm4, r8d
+  CVTSI2SD xmm5, r9d
+
+  mov r12d , [rbp + 16]
+  mov r13d , [rbp + 24]
+  mov r14d , [rbp + 32]
+  mov r15d , [rbp + 40]
+
+  CVTSI2SD xmm6, r12d
+  CVTSI2SD xmm7, r13d
+  CVTSI2SD xmm8, r14d
+  CVTSI2SD xmm9, r15d
+
+  MULSD xmm0, xmm1
+  MULSD xmm0, xmm2
+  MULSD xmm0, xmm3
+  MULSD xmm0, xmm4
+  MULSD xmm0, xmm5
+  MULSD xmm0, xmm6
+  MULSD xmm0, xmm7
+  MULSD xmm0, xmm8
+  MULSD xmm0, xmm9
+ 
+  MOVSS [rdi], xmm0
+
+  ;resutaro no volatiles.
+  pop r15
+  pop r14
+  pop r13
+  pop r12
 
 	; epilogo
 	pop rbp

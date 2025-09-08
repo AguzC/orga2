@@ -5,11 +5,11 @@
 ; X4 --> RCX ECX CX  CL
 ; X5 --> R8  R8D R8W R8B
 ; X6 --> R9  R9D R9W R9B
-; X8 --> [RBP + 16]
-; X7 --> [RBP + 24]
+; x7 --> [rbp + 16] Despues de pushear rbp
+; x8 --> [rbp + 24] tienen estas direcciones
 
 ; PARAMETROS FLOTANTES: foo(x1,..,x8);
-; x1 --> XMM0  siguenconvencion, igualque antes
+; x1 --> XMM0  
 ; x2 --> XMM1
 ; x3 --> XMM2
 ; X4 --> XMM3
@@ -29,3 +29,55 @@ NO VOLATILES 32: EBX, EBP, R12D,  R13D, R14D, R15D.
 NO VOLATILES 16: BX , BP , R12W,  R13W, R14W, R15W.
 NO VOLATILES 8L: BL , BPL, R12B,  R13B, R14B, R15W.
 
+GDB:
+
+n --> Dar un paso
+s --> step into function
+c --> avanzar al siguiente breakpoint
+p var --> printear un valor 
+b <nombre_de_funcion>  -> Breakpoints
+b <nombre_de_archivo>:<numero_de_linea>
+delete x --> Borra break x
+
+En asm:
+p $rcx  //contenido del reg RCX
+p *(uint64_t*)($rbp-8) // que tengo en el stack
+(Importante saber de que tam es lo que lees)
+
+;prologo
+push rbp      ;Alineo la pila
+mov rbp, rsp  ;Stack frame armao
+
+;epilogo
+pop rbp
+ret
+
+Operaciones float y double:
+Siempre tener en cuenta que si algo 
+falla con float, mejor usa double??
+Y tambien podes probar truncar.
+
+MULSS Float  * float   (mul x1 x2)
+MULSD double * double
+
+MOVSD Mover o mergear Double?
+MOVSS Mover o mergear Float ?
+
+
+Casteo Hell: La palabra clave de ctrl+F
+es "convert".
+Importante, hay version packed y scalar,
+la packed es SIMD(?, nos quedamos con 
+la scalar.
+
+CVTSD2SI, Double to Double word integer
+CVTSD2SS, Double to float
+
+CVTSI2SS, Quad o Double word int to float.
+CVTSI2SD, Quad o Double word int to double.
+
+CVTSS2SD, float a double.
+CVTSS2SI, float a Double Word integer (32bits?).
+
+CVTTSD2SI, Truncando double a signed int.
+CVTTSS2SI, Truncando float a integer.

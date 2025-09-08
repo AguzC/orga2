@@ -343,3 +343,52 @@ alternate_sum_4_using_c_alternative:
 
 
 GDB: De nuevo.
+
+Para establecer breakpoints tenemos varias opciones, las que más vamos a usar son estas:
+>>> b <nombre_de_funcion>
+>>> b <nombre_de_archivo>:<numero_de_linea>
+
+Se pueden borrar los breakpoints con delete x (siendo x el nombre id del b entre corchets?)
+
+IMPORTANTE: EL ASSERT ROMPE TODO, si el assert falla, tonces corta en seco el programa.
+
+Podemos ver el contenido en memoria de muchas formas, nosotros vamos a usar 
+p o print, 
+
+>>> p $rcx  //imprime el contenido del registro RCX
+>>> p *(uint32_t*)$rbp //castea el contenido de RBP como puntero 
+a uint32_t, lo desferencia e imprime el contenido de la dirección de memoria
+
+p *(uint64_t*)($rbp-8) // Y asi veo que tengo en el stack, si le resto 8 al 
+basepointer, estoy leyendo el siguiente bloque del stack.
+
+La segunda, como dice, queres ver lo que guardaste en mem, y como en el ejemplo 
+guardamos un numero de 32bits, cuando lo leas vas a tener que tratarlo como tal, 
+por eso, lo castea a puntero del tamaño que quiero, y lo desreferencia, asi solo 
+lee la parte buscada.
+
+>>> x <expresión de dirección>
+>>> x /<formato> <expresión de dirección>
+>>> x /<largo> <formato> <expresión de dirección>
+
+expresión de dirección especifica la dirección de memoria cuyos contenidos se mostrarán. Puede ser una dirección o cualquier expresión de C/C++ que evalúe a una dirección.
+
+formato especifica el formato en que se mostrarán los contenidos de la memoria, pueden ser:
+
+o - octal
+x - hexadecimal
+d - decimal
+u - decimal sin signo
+t - binario
+f - punto flotante
+a - dirección
+c - caracter
+s - string
+i - instrucción
+Y se pueden agregar los siguientes modificadores para especificar el tamaño de los elementos:
+
+b - byte
+h - word (16-bit)
+w - double word (32-bit)
+g - quad word (64-bit)
+largo especifica la cantidad de elementos que se imprimirán.
