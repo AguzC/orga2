@@ -81,3 +81,27 @@ CVTSS2SI, float a Double Word integer (32bits?).
 
 CVTTSD2SI, Truncando double a signed int.
 CVTTSS2SI, Truncando float a integer.
+
+ciclos:
+Se usa un cmp x1 x2, que compara los operandos, y segun 
+si es mas grande o que onda, setea unas eflags, despues, el 
+jump  va a chusmear esas para ver si salta o no, asiq saltar 
+suele ser 
+
+cmp x1 x2 
+jxx .etiqueta
+
+y podes usar inc x1 para sumar 1 al registro o memoria que le 
+pases.
+
+je  -> jump if equal
+jl  -> jump if lesser
+jle -> jump if lessser-equal
+jg  -> jump if greater
+jge -> jump if greater-equal
+
+y el compare se puede hacer con registros, memoria 
+e inmediates
+
+cmp rdi, 0 
+(chequeo null pointer si rdi es addres)

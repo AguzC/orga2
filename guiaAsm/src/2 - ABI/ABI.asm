@@ -236,7 +236,7 @@ product_9_f:
   MULSD xmm0, xmm5
   MULSD xmm0, xmm6
   MULSD xmm0, xmm7
-  MULSD xmm0, xmm8
+  MULSD xmm0, xmm8  ;Hasta aca bien, todo guardado en xmm0
 
 	; convertimos los enteros en doubles y los multiplicamos por xmm0.
 	; COMPLETAR
@@ -267,7 +267,7 @@ product_9_f:
   MULSD xmm0, xmm8
   MULSD xmm0, xmm9
  
-  MOVSS [rdi], xmm0
+  MOVSD [rdi], xmm0
 
   ;resutaro no volatiles.
   pop r15

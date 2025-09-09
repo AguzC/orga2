@@ -392,3 +392,129 @@ h - word (16-bit)
 w - double word (32-bit)
 g - quad word (64-bit)
 largo especifica la cantidad de elementos que se imprimirán.
+
+=================================Parte3 ASM====================================================
+Alineacion de estructuras:
+El hardware labura en words, que no son lo mismo que bytes y depende segun el procesador.
+Es mas eficiente laburanod con tam de palabra y multiplos de este, asiq nos importa la alineacion.
+
+Podemos establecer que cuanto menos significativo sea un byte, más baja será la dirección de memoria
+en la que se encuentre (Little Endian), o bien, lo contrario (Big Endian),intel es little.
+
+El byte menos significativo tiene una mem menor a la del resto y asi subiendo, podes decir que desde 
+la posicion i donde esta el dato, estas en el menos significativo y subiendo.  
+
+Esto es perfectamente evitable si nos preocupamos por la alineación de las variables. Cada tipo de dato 
+tiene su propio requerimiento de alineación, debe estar alieado a su tamaño. Por ejemplo, un entero 
+de 32 bits debe estar alineado a 4 bytes. La alineacion a manopla con datos que no importan en el 
+medio se llama padding, seria meter un byte mas que no va a ser usado para que otra cosa quede alineada.
+
+Estructuras en memoria:
+Tenemos un contrato de datos que especifica cómo deben estar alineados los atributos de un struct de forma 
+que sea compatible con C. Lean con atención, el contrato dice así:
+
+Cada atributo estará alineado al tamaño de su tipo de dato, insertando padding entre ellos en caso de ser necesario.
+
+La estructura en sí se alineará al tamaño del tipo más grande de sus atributos.
+
+El tamaño de la estructura será tal que la siguiente dirección de memoria estará alineada igual que la 
+estructura, añadiendo padding al final de ella de ser necesario para que se cumpla. Piensen en 
+un "array de estructuras", una al lado de la otra en memoria, el padding que se agrega al final de cada estructura 
+es el que se necesita para que la siguiente esté alineada correctamente. Esto es importante porque, si no se respeta, 
+al acceder a la siguiente estructura el procesador deberá realizar lecturas adicionales para obtener el valor completo, 
+como en el caso de las variables desalineadas.
+
+Un caso que no respeta el contrato de datos y no está alineado. A este tipo de estructuras se las denomina empaquetadas 
+y se le indica al compilador agregando __attribute__((packed)) al final de la declaración. Esta opción permite tener 
+structs sin padding, para optimizar el tamaño a costa del tiempo de procesamiento que requerirán las lecturas.
+
+struct alumn3 {
+  char* nombre;  -> nombre es un puntero, asiq en 64bits pesa 8.
+  int dni;
+  char comision;
+} __attribute__((packed))
+
+Con array:
+struct alumn3 {
+  long elo;
+  char name[21]; 1.No es un puntero, es un actual array. 2. Para alinear el struc, lo que importa es el tamaño del TIPO mas   
+  int ranking;   grande de sus atributos, aca el array es de char, que es 1 byte, mietnras que tenes el elo, que son 8 bytes,
+}                asiq ese es el mas grande, y todo queda en 8(long) + 21(chars) + 3 (padding) + 4(int) + 4(padding), el primer
+                 padding fue porq quedamos en 29 y necesitabamos un multiplo de 4, y el segundo porq qudamos en 36 y el struct,
+                 por el long, tiene que ser multiplo de 8.
+
+Si tenes un struct adentro de otro struct, se tiene en cuenta el requisito de alineacion del struct interno como el tamaño
+del tipo del struct:
+
+struct padre {
+  char c;
+  struct { -> El tam de tipo de este struct es igual al tam de tipo mas grande dentro suyo, en este caso,  long l,
+    long l;   asiq podemos pensar que padre tiene 3 tamaños de tipo, el char, el int y el long l, aunq realmente sea 
+    short x;  un struct, y despues se alinea a eso. El tam de la estructura es 
+  } hijo;     1(char) + 7(padding) + 16(sizeof(hijo)) + 4(int) + 4(padding)
+  int y
+};
+
+Con esto, podemos calcular los offset de los  structs, y ahora, va a ser una buena practica (obligatoria) anotar 
+estos offset al principio del codigo assembly como macros
+
+Saltos:
+Hay una instruccion de saltos que empieza con j y tiene muchas variantes
+y para chequear la condicion, se fija las eflags, y vos vas a tener que setear esa usando la 
+instruccion cmp, comparas algo y pone el resultado en la eflag, tonces el jump se fija eso 
+pa saltar. Tener mucho cuidado que hay comparaciones de enteros con signo con ciertas instrucciones 
+y sin signo con otras.
+
+struct alumn3 {
+  char* nombre;
+  char comision;
+  int dni;
+} __packed__
+
+;tengo en RDI un puntero al comienzo de un array de alumnos
+  ;y en RSI el tamaño del array
+  ;asumimos que al menos hay un elemento en el array
+
+  XOR R8, R8 ;usamos R8 como índice en el array
+  
+  .ciclo:
+    mov RDX, [RDI + R8 * 16 + 0]
+    ;16 es el tamaño del struct, por eso lo usamos para escalar el índice 
+    ;0 es el offset del atributo nombre, así que tengo en RDX el valor del atributo nombre del alumno de índice R8
+    
+    mov CL, BYTE [RDI + R8 * 16 + 8] 
+    ; tengo en el byte mas bajo de RCX el atributo comision
+    
+    mov R9D, DWORD [RDI + R8 * 16 + 12] 
+    ; tengo en los 32 bits menos significativos de R9 el valor del atributo dni
+
+    INC R8 ;avanzo el índice del array
+    CMP R8, RSI
+    JL .ciclo
+
+Si quisieramos modificar el struct, agregandole packed o cambiar de posicion los atributos,  se rompe todo ya 
+que los offset dejan de ser correctos y habria que actualizarlos, para evitar esto, le metemos etiquetas a 
+los offset, directivas del procesador que no son parte del codigo final, si modificas el struct, ahora solo 
+hay que modificar las etiquetas.
+
+%define OFFSET_NOMBRE 0
+%define OFFSET_COMISION 12
+%define OFFSET_DNI 8
+%define ALUMNO_SIZE 13
+
+ciclo:
+    mov RDX, [RDI + R8 * ALUMNO_SIZE + OFFSET_NOMBRE]
+    ;ALUMNO_SIZE es el tamaño del struct, por eso lo usamos para escalar el índice 
+    ;OFFSET_NOMBRE es el offset del atributo nombre, así que tengo en RDX el valor del atributo nombre del alumno de índice R8
+    
+    mov CL, BYTE [RDI + R8 * ALUMNO_SIZE + OFFSET_COMISION] 
+    ; tengo en el byte mas bajo de RCX el atributo comision
+    
+    mov R9D, DWORD [RDI + R8 * ALUMNO_SIZE + OFFSET_DNI] 
+    ; tengo en los 32 bits menos significativos de R9 el valor del atributo dni
+
+    INC R8 ;avanzo el índice del array
+    CMP R8, RSI
+    JL .ciclo
+
+
