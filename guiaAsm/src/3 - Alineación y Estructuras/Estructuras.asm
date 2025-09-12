@@ -1,5 +1,4 @@
 
-
 ;########### ESTOS SON LOS OFFSETS Y TAMAÑO DE LOS STRUCTS
 ; Completar las definiciones (serán revisadas por ABI enforcer):
 NODO_OFFSET_NEXT EQU 0
@@ -37,38 +36,62 @@ global cantidad_total_de_elementos_packed
 ;lista --> rdi
 
 cantidad_total_de_elementos:
-	;prologo
+	.prologo:
 	push rbp
 	mov rbp, rsp
 
 	;chequeo de null pointer
 	cmp rdi, 0
 	jne .noVacia ;Salta si no es Null.
-	mov eax, 0	 ;Digo que tiene 0 elementos
-	cmp rdi, 0    
-	je .prologo  ;Uso la condicion negada para saltar al final
+	mov eax, 0	 ;Digo que tiene 0 elementos   
+	jmp .epilogo  ;Uso la condicion negada para saltar al final
 
-	;Al menos tenemos head
-	.noVacia
-	mov rsi, [rdi] ;Busco el valor del puntero head con el puntero a lista
-				   ;rsi es nodo_t* que apunta a head.
-	mov eax,  [rsi + NODO_OFFSET_LONGITUD] ;Guardo la primer longitud en eax
+	.noVacia: ;
+	mov rsi, [rdi] ; RSI = nodo* head
+	xor eax, eax  ; Setteo el resultado a 0
 
-	cmp [rsi + NODO_OFFSET_NEXT], 0
+	.ciclo:
+	cmp rsi, 0
+	je .epilogo ; while (!(rsi == NULL)) 
 
-	.ciclo
+	add eax, [rsi + NODO_OFFSET_LONGITUD] 
+	mov rsi, [rsi + NODO_OFFSET_NEXT]
 
-	inc r8
-	cmp r8, r9
-	jl .ciclo
+	jmp .ciclo
 
-
-	;epilogo
+	.epilogo:
 	pop rbp
 	ret
 
 ;extern uint32_t cantidad_total_de_elementos_packed(packed_lista_t* lista);
 ;registros: lista[rdi]
 cantidad_total_de_elementos_packed:
+		.prologo:
+	push rbp
+	mov rbp, rsp
+
+	;chequeo de null pointer
+	cmp rdi, 0
+	jne .noVacia ;Salta si no es Null.
+	mov eax, 0	 ;Digo que tiene 0 elementos   
+	jmp .epilogo  ;Uso la condicion negada para saltar al final
+
+	.noVacia: ;
+	mov rsi, [rdi] ; RSI = nodo* head
+	xor eax, eax  ; Setteo el resultado a 0
+
+	.ciclo:
+	cmp rsi, 0
+	je .epilogo ; while (!(rsi == NULL)) 
+
+	add eax, [rsi + PACKED_NODO_OFFSET_LONGITUD] 
+	mov rsi, [rsi + PACKED_NODO_OFFSET_NEXT]
+
+	jmp .ciclo
+
+	.epilogo:
+	pop rbp
 	ret
+
+
 
