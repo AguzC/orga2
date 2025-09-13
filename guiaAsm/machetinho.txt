@@ -29,6 +29,26 @@ NO VOLATILES 32: EBX, EBP, R12D,  R13D, R14D, R15D.
 NO VOLATILES 16: BX , BP , R12W,  R13W, R14W, R15W.
 NO VOLATILES 8L: BL , BPL, R12B,  R13B, R14B, R15W.
 
+movzx -> Guardas datos de registros mas chicos en 
+otros mas grandes con 0 extended, sirve pa 16 y 8bits.
+
+SHL Shift logic left
+SHR Shft logic right
+SAL Shift aritmetic left
+SHR Shift aritmetic right
+
+el AND logico solo funca hasta 32 bits con un
+inmediato, asiq si queres limpiar los 32 de 
+arriba, podes usar el reg de 32 y hacer 
+un AND edi, 0xffffffff, asi limpia los de 
+arriba.
+and eax, 0xffffffff
+
+Para ejecutar una funcion que tenes como puntero
+en asm, usas un call y el valor del puntero:
+call rdx
+
+
 GDB:
 
 n --> Dar un paso

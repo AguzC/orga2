@@ -11,12 +11,14 @@ FALSE EQU 0
 ; Marca un ejercicio como hecho
 TRUE  EQU 1
 
-ITEM_OFFSET_NOMBRE EQU 9
-ITEM_OFFSET_ID EQU 16
-ITEM_OFFSET_CANTIDAD EQU 24
+ITEM_OFFSET_NOMBRE EQU 0
+ITEM_OFFSET_ID EQU 12
+ITEM_OFFSET_CANTIDAD EQU 16
 
-POINTER_SIZE EQU 4
-UINT32_SIZE EQU 8
+; 9b nombre + 3 padding + 4id
+
+POINTER_SIZE EQU 8
+UINT32_SIZE EQU 4
 
 ; Marcar el ejercicio como hecho (`true`) o pendiente (`false`).
 
@@ -24,7 +26,7 @@ global EJERCICIO_1_HECHO
 EJERCICIO_1_HECHO: db FALSE ; Cambiar por `TRUE` para correr los tests.
 
 global EJERCICIO_2_HECHO
-EJERCICIO_2_HECHO: db FALSE ; Cambiar por `TRUE` para correr los tests.
+EJERCICIO_2_HECHO: db TRUE ; Cambiar por `TRUE` para correr los tests.
 
 global EJERCICIO_3_HECHO
 EJERCICIO_3_HECHO: db FALSE ; Cambiar por `TRUE` para correr los tests.
@@ -34,24 +36,46 @@ EJERCICIO_4_HECHO: db FALSE ; Cambiar por `TRUE` para correr los tests.
 
 global ejercicio1
 ejercicio1:
-	add edi, ecx
-	add edi, edx
-    add edi, ebx
-    add edi, r9d
-	mov eax, edi
+	add rdi, rsi
+	add rdi, rdx
+    add rdi, rcx
+    add rdi, r8
+	mov rax, rdi
 	ret
+;
+
+;void ejercicio2(item_t* un_item, uint32_t id, uint32_t cantidad, char nombre[]);
+;un_item*  --> rdi
+;id		   --> esi
+;cant	   --> edx
+;nombre    --> rcx (es un puntero a un array)
+
+
 
 global ejercicio2
 ejercicio2:
+
+	and esi, 0xffffffff ;por si acaso seteo bits altos a 0
+	and edx, 0xffffffff
 	mov [rdi+ITEM_OFFSET_ID], rsi
 	mov [rdi+ITEM_OFFSET_CANTIDAD], rdx
-	call strcpy 
-	ret
 
+	mov rdi, (rdi + ITEM_OFFSET_NOMBRE)
+	mov rsi, rcx 
+	call strcpy 
+
+	ret
+;
+
+
+;uint32_t ejercicio3(uint32_t* array, uint32_t size, uint32_t (*fun_ej_3)(uint32_t a, uint32_t b));
+;array* --> rdi
+;size   --> esi
+;foo    --> rdx
 
 global ejercicio3
 ejercicio3:
-	cmp rsi, 0
+	cmp esi, 0
 	je .vacio
 	
 	mov rcx, rdi ; array
@@ -59,7 +83,7 @@ ejercicio3:
 	mov r9, 0 ; i
 
 	.loop:
-	mov rdi, r8
+	mov rdi, r8				;Pone el primer param en 0 enla primer iteracion
 	mov rsi, [rcx + r9*4]
 
 	call rdx

@@ -3,7 +3,7 @@ En esta sección vamos implementar código vinculado para el manejo de strings. 
 Programen en assembly las siguientes funciones. El archivo que tienen que editar es Memoria.asm.
 
 - strLen
-- strPrint
+- strPrint????
 - strClone
 - strCmp
 - strdelete
