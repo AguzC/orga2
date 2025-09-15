@@ -16,7 +16,7 @@ typedef struct {
 	uint8_t references;   //asmdef_offset:ATTACKUNIT_REFERENCES
 } attackunit_t; //asmdef_size:ATTACKUNIT_SIZE
 
-typedef attackunit_t *mapa_t[255][255];
+typedef attackunit_t* mapa_t[255][255];
 
 /**
  * Marca el ejercicio 1A como hecho (`true`) o pendiente (`false`).

@@ -29,6 +29,12 @@ NO VOLATILES 32: EBX, EBP, R12D,  R13D, R14D, R15D.
 NO VOLATILES 16: BX , BP , R12W,  R13W, R14W, R15W.
 NO VOLATILES 8L: BL , BPL, R12B,  R13B, R14B, R15W.
 
+IMPORTANTISIMO: Solo podes hacer productos en 
+memoria de *1, 2, 4 u 8,cualquier otra es invalid 
+64-bit effective address error, por el tema de la 
+forma en la que ta diseñado.
+[base + (indiceReg * 1,2,4 u 8) + offset]
+
 movzx -> Guardas datos de registros mas chicos en 
 otros mas grandes con 0 extended, sirve pa 16 y 8bits.
 
@@ -47,6 +53,12 @@ and eax, 0xffffffff
 Para ejecutar una funcion que tenes como puntero
 en asm, usas un call y el valor del puntero:
 call rdx
+
+IMUL —Signed Multiply
+Se usa con 3 instruccions si queres usarlo
+con un inmediate
+imul dx, dx, 8 ,acordate que el res es hexa
+
 
 
 GDB:
