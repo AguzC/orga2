@@ -79,10 +79,11 @@ optimizar:
 	jge .epilogo
 
 	mov rdi, [rbp - 8]			; rdi = mapa
-	mov rax, [rdi + r15* 8]	 	; rax = mapa[i][j] temporal
-	mov r12, rax				; r12 = mapa[i][j]
+	mov rsi, [rdi + r15* 8]	 	; rax = mapa[i][j] temporal
+	mov r12, rsi				; r12 = mapa[i][j]
+	mov rax, rsi
 
-	cmp rax, 0				    ; if (mapa[i][j] == NULL) then continue
+	cmp rdi, 0				    ; if (mapa[i][j] == NULL) then continue
 	je .finCiclo
 
 	call r14					; eax = hash(mapa[i][j])
@@ -137,3 +138,72 @@ modificarUnidad:
 	; r/m8  = uint8_t          y
 	; r/m64 = void*            fun_modificar(attackunit_t*)
 	ret
+
+
+; global optimizar
+; optimizar:
+; 	; Te recomendamos llenar una tablita acá con cada parámetro y su
+; 	; ubicación según la convención de llamada. Prestá atención a qué
+; 	; valores son de 64 bits y qué valores son de 32 bits o 8 bits.
+; 	;
+; 	; r/m64 = mapa_t           mapa
+; 	; r/m64 = attackunit_t*    compartida
+; 	; r/m64 = uint32_t*        fun_hash(attackunit_t*)
+	
+; 	; RDI -> mapa_t que es attackunit_t* (*)[255]
+; 	; RSI -> attackunit_t* compartida
+; 	; RDX -> fun_hash
+; 	push rbp
+; 	mov rbp, rsp
+; 	sub rsp, 8
+; 	push rbx
+; 	push r12
+; 	push r13
+; 	push r14
+; 	push r15
+	
+; 	mov rbx, rdi ; mapa_t osea attackunit* (*)[255]
+; 	mov r15, rsi ; unidad compartida
+; 	mov r14, rdx ; func de hash
+
+; 	xor r12, r12
+
+; 	.loop:
+; 	mov r13, QWORD [rbx + r12*8]
+; 	test r13, r13
+; 	jz .incloop
+
+; 	cmp r13, r15
+; 	je .incloop
+	
+; 	mov rdi, r13
+; 	call r14
+; 	mov DWORD [rbp - 8], eax
+
+; 	mov rdi, r15
+; 	call r14
+; 	cmp eax, DWORD [rbp - 8]
+; 	jne .incloop
+
+; 	inc BYTE [r15 + ATTACKUNIT_REFERENCES]
+; 	dec BYTE [r13 + ATTACKUNIT_REFERENCES]
+; 	mov al, [r13 + ATTACKUNIT_REFERENCES]
+; 	cmp al, 0
+; 	jne .incloop
+
+; 	mov QWORD [rbx + r12*8], r15
+; 	mov rdi, r13
+; 	call free
+; 	.incloop:
+; 	inc r12
+; 	cmp r12, MAP_SIZE
+; 	jl .loop
+
+; 	pop r15
+; 	pop r14
+; 	pop r13
+; 	pop r12
+; 	pop rbx
+; 	add rsp, 8
+; 	pop rbp
+; 	ret

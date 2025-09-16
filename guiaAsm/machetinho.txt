@@ -76,6 +76,24 @@ p $rcx  //contenido del reg RCX
 p *(uint64_t*)($rbp-8) // que tengo en el stack
 (Importante saber de que tam es lo que lees)
 
+x/s DIRECCION → interpreta la dirección como string.
+x/4s DIRECCION → muestra 4 strings seguidos en memoria.
+x/16bx DIRECCION → muestra 16 bytes en hexadecimal desde la dirección.
+x/16cb DIRECCION → muestra 16 bytes como caracteres (útil si querés ver ASCII aunque no haya \0).
+
+x/NFU DIRECCION
+
+N = cuántas unidades mostrar.
+F = formato (x = hex, d = decimal, u = unsigned, c = char, 
+    s = string, i = instrucción).
+U = tamaño de la unidad (b = byte, h = halfword 2 bytes, 
+    w = word 4 bytes, g = giant word 8 bytes).
+
+>>> x/s $rbx
+0x7fffffffd150: "A1"
+
+
+
 ;prologo
 push rbp      ;Alineo la pila
 mov rbp, rsp  ;Stack frame armao

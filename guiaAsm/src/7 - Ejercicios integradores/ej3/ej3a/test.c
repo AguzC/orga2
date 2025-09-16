@@ -143,7 +143,7 @@ TEST(ej1_segmentar_casos) {
     }
 
     // Test 1: Casos de todos los niveles
-    caso_t casos_test1[6] = {
+    caso_t casos_test1[6] = { //CrearCaso(ID,NIVEL,CATEGORIA,ESTADO)
         crear_caso(1, 0, "A1", 1),
         crear_caso(2, 1, "B2", 2),
         crear_caso(3, 2, "C3", 3),

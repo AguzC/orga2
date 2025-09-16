@@ -433,6 +433,9 @@ int main() {
     free(nuevoUsuario); */
     separasao();
 
+    int zzz = 10;
+    printf(" \n\n\n\n El tam de int es: %d  \n\n\n\n\n",sizeof(zzz));
+
 
 
     return 0;
