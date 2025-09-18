@@ -35,7 +35,6 @@ caso_t crear_caso(uint32_t id, uint32_t nivel, const char* categoria, uint16_t e
     caso.usuario->nivel = nivel;
     return caso;
 }
-
 /**
  * Función auxiliar para liberar memoria de un arreglo de casos
  */
@@ -189,7 +188,8 @@ TEST(ej2_resolver_automaticamente) {
         crear_caso(3, 1, "C3", 3),  // ID impar -> resultado 1
         crear_caso(5, 2, "D5", 5),  // ID impar -> resultado 1
         crear_caso(7, 1, "E7", 7)   // ID impar -> resultado 1
-    };
+    };//crear_caso( ID, NIVEL, CATEGORIA, ESTADO)
+
 
     caso_t casos_a_revisar2[3];
     TEST_CALL_V(resolver_automaticamente, funcionCierraCasos, casos_test2, casos_a_revisar2, 3);
@@ -207,6 +207,7 @@ TEST(ej2_resolver_automaticamente) {
         crear_caso(3, 1, "C3", 3),  // ID impar -> resultado 1
         crear_caso(5, 2, "D5", 5),  // ID impar -> resultado 1
         crear_caso(7, 1, "E7", 7)   // ID impar -> resultado 1
+        //
     };
 
     for (int i = 0; i < 3; i++){
@@ -234,6 +235,10 @@ TEST(ej2_resolver_automaticamente) {
         crear_caso(6, 1, "CLT", 6),  // ID par -> resultado 0, categoría CLT
         crear_caso(8, 2, "RBO", 8)   // ID par -> resultado 0, categoría RBO
     };
+//crear_caso( ID, NIVEL, CATEGORIA, ESTADO)
+//fooCierraCasos Si el ID del usuario es par devuelve 0, si no devuelve 1
+//goliath
+
 
     caso_t casos_a_revisar3[4];
     TEST_CALL_V(resolver_automaticamente, funcionCierraCasos, casos_test3, casos_a_revisar3, 4);
@@ -246,7 +251,7 @@ TEST(ej2_resolver_automaticamente) {
         failed = true;
         printf(FAIL "ej2_resolver_automaticamente_cierre_desfavorable: casos no se cerraron desfavorablemente\n");
     }
-
+//GOLIATH
     //chequeo de integridad
     caso_t casos_test3_copia[4] = {
         crear_caso(2, 1, "CLT", 2),  // ID par -> resultado 0, categoría CLT
@@ -597,7 +602,7 @@ TEST(ej2_resolver_automaticamente) {
 
     liberar_casos(casos_test10, 10);
 
-    // Test 11: Verificación de memoria (casos grandes)
+    // Test 11: Verificación de      (casos grandes)
     int num_casos = 100;
     caso_t* casos_test11 = malloc(num_casos * sizeof(caso_t));
     caso_t* casos_a_revisar11 = malloc(num_casos * sizeof(caso_t));

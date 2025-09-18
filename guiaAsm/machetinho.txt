@@ -20,7 +20,7 @@
 
 ;PARAM INTERCALADOS: Se completan como los de arriba
 segun su tipo.
-
+                                64   32   16      8
 RESULTADO: En entero o puntero: RAX, EAX, AX, AH, AL
            En flotante: XMMO0
 
@@ -63,6 +63,8 @@ imul dx, dx, 8 ,acordate que el res es hexa
 
 GDB:
 
+gdb test_asm
+
 n --> Dar un paso
 s --> step into function
 c --> avanzar al siguiente breakpoint
@@ -75,6 +77,14 @@ En asm:
 p $rcx  //contenido del reg RCX
 p *(uint64_t*)($rbp-8) // que tengo en el stack
 (Importante saber de que tam es lo que lees)
+
+>>> p *(uint64_t) ($rbp - 48) //Aca estoy leyendo unos enteros 
+$2 = 0                        //que guarde en mem, no punteros, 
+>>> p *(uint64_t) ($rbp - 56) //enteros.
+$3 = 1
+>>> p *(uint64_t) ($rbp - 64)
+$4 = 2
+
 
 x/s DIRECCION → interpreta la dirección como string.
 x/4s DIRECCION → muestra 4 strings seguidos en memoria.
@@ -91,6 +101,17 @@ U = tamaño de la unidad (b = byte, h = halfword 2 bytes,
 
 >>> x/s $rbx
 0x7fffffffd150: "A1"
+
+>>> p *(char*) ($rdi) @3 ;Si sabes la longitud del string 
+$18 = "A1"               ;que esperas, podes hacer @N y 
+                         ;te imprime esa cantidad
+
+>>> p *(caso_t *) $rdi   ;SI TENES UN STRUCT DEFINIDO,
+$19 = {                  ;PODES HACER ESTO Y TE MUESTRA 
+  categoria = "A1",      ;EL ESTADO ACTUAL, MARAVILLSOO
+  estado = 1,
+  usuario = 0x4066b0
+}
 
 
 
@@ -155,3 +176,11 @@ e inmediates
 
 cmp rdi, 0 
 (chequeo null pointer si rdi es addres)
+
+
+mensaje1 es una etiqueta que apunta a la dirección donde empieza el string "CLT".
+
+El 0 es para terminar el string al estilo C (\0).
+
+mensaje1 db "CLT", 0     ; string terminado en 0
+mensaje2 db "RBO", 0

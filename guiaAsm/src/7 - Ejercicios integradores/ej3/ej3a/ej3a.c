@@ -1,8 +1,5 @@
 #include "../ejs.h"
 
-// Función auxiliar para contar casos por nivel
-/* void contar_casos_por_nivel(caso_t* arreglo_casos, int largo, int* contadores) {
-} */
 
 
 uint32_t contar_casos_por_nivel(caso_t* arreglo_casos, uint32_t largo, uint32_t nivel) {

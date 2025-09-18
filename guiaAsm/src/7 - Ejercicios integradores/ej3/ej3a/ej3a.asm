@@ -99,7 +99,11 @@ segmentar_casos:
     push r13    
     push r14    
     push r15    
-    sub rsp, 8
+    xor rbx, rbx ;rbx = 0
+    push rbx     ;iteraodrNivel1 = qword [rbp - 48]
+    push rbx     ;iteraodrNivel1 = qword [rbp - 56]
+    push rbx     ;iteraodrNivel2 = qword [rbp - 64] 
+    
 
     ;cuerpo
 
@@ -164,16 +168,142 @@ segmentar_casos:
     .chauMalloc:
 
     ;------------------------------------------------------TestFuncionalidad
-    ;En principio, okey
+    ;En principio, okey, tenemos nuestros punteritos
+    ;Aca no hay llamados a funcion, asiq podemos usar los registros volatiles
 
+
+    cmp r12d, 0                 ;if largo== 0 sigo con mi vida
+    je .mallochearResultado
+    
+
+    xor r9, r9                  ; r9 = 0, es el iterador
+    xor rsi, rsi                ; rsi = 0 para productear
+
+    .ciclo: ;----------------------------CICLO----------------------------------
+    
+    
+    mov rsi,r9                  ; paso el  valor i a rsi
+    imul rsi, CASO_SIZE         ; multiplico i * CASO_SIZE
+
+    mov rdi, [rbx + rsi + CASO_USUARIO_OFFSET]
+    ;[arreglgo_casos + (i * CASO_SIZE) + casoUsuarioOffset] = rdi
+    ;osea, rdi deberia ser el puntero al usuario actual del caso.
+    ;enfasis en DEBERIA.
+    mov edx, [rdi + USUARIO_NIVEL_OFFSET] ; rdx = nivelActual....
+
+    ;primer IF
+
+    cmp rdx, 0
+    jne .casoNivel1 ;Si no sos 0, vas al siguiente IF
+    mov rcx, qword [rbp - 48] ; rcx = iteradorNivel0
+    imul rcx, CASO_SIZE       ; rcx = iteradorNivel0 * CASO_SIZE 
+
+    ;Este es un mejor metodo de clonar los casos
+    ;mov r8, [r14+SEGMENTACION_CASOS1_OFFSET]
+    ;mov [r8+rsi+CASO_USUARIO_OFFSET], r10   ;copie los bytes 9 a 16
+    
+    ;mov r10, [r12+r9+CASO_CATEGORIA_OFFSET]
+    ;mov [r8+rsi+CASO_CATEGORIA_OFFSET], r10 ;copie los bytes 1 a 8
+
+
+    ;Copiar categoria[3] a manopla.....
+    mov r8b, [rbx + rsi + CASO_CATEGORIA_OFFSET]    ; Hasta aca funca
+    mov [r13 + rcx + CASO_CATEGORIA_OFFSET], r8b    ; Hasta aca tambien
+    mov r8b, [rbx + rsi + CASO_CATEGORIA_OFFSET + 1]    ; Hasta aca funca
+    mov [r13 + rcx + CASO_CATEGORIA_OFFSET + 1], r8b    ; Hasta aca tambien
+    mov r8b, [rbx + rsi + CASO_CATEGORIA_OFFSET + 2]    ; Hasta aca funca
+    mov [r13 + rcx + CASO_CATEGORIA_OFFSET + 2], r8b    ; Hasta aca tambien
+
+    
+
+    ;Copiar estado
+    mov r8w, [rbx + rsi + CASO_ESTADO_OFFSET]
+    mov [r13 + rcx + CASO_ESTADO_OFFSET], r8w
+
+    ;Copiar puntero a usuario
+    mov r8, [rbx + rsi + CASO_USUARIO_OFFSET]
+    mov [r13 + rcx + CASO_USUARIO_OFFSET], r8
+    inc qword [rbp - 48]    ;iteradorNivel0++
+
+
+    .casoNivel1:
+
+    cmp rdx, 1
+    jne .casoNivel2 ;Si no sos 0, vas al siguiente IF
+    mov rcx, qword [rbp - 56] ; rcx = iteradorNivel0
+    imul rcx, CASO_SIZE       ; rcx = iteradorNivel0 * CASO_SIZE 
+
+    ;Copiar categoria[3] a manopla.....
+    mov r8b, [rbx + rsi + CASO_CATEGORIA_OFFSET]    ; Hasta aca funca
+    mov [r14 + rcx + CASO_CATEGORIA_OFFSET], r8b    ; Hasta aca tambien
+    mov r8b, [rbx + rsi + CASO_CATEGORIA_OFFSET + 1]    ; Hasta aca funca
+    mov [r14 + rcx + CASO_CATEGORIA_OFFSET + 1], r8b    ; Hasta aca tambien
+    mov r8b, [rbx + rsi + CASO_CATEGORIA_OFFSET + 2]    ; Hasta aca funca
+    mov [r14 + rcx + CASO_CATEGORIA_OFFSET + 2], r8b    ; Hasta aca tambien
+
+    ;Copiar estado
+    mov r8w, [rbx + rsi + CASO_ESTADO_OFFSET]
+    mov [r14 + rcx + CASO_ESTADO_OFFSET], r8w
+
+    ;Copiar puntero a usuario
+    mov r8, [rbx + rsi + CASO_USUARIO_OFFSET]
+    mov [r14 + rcx + CASO_USUARIO_OFFSET], r8
+    inc qword [rbp - 56]    ;iteradorNivel1++
+
+
+    .casoNivel2:
+
+    cmp rdx, 2
+    jne .incrementarCiclo ;Si no sos 0, vas al siguiente IF
+    mov rcx, qword [rbp - 64] ; rcx = iteradorNivel0
+    imul rcx, CASO_SIZE       ; rcx = iteradorNivel0 * CASO_SIZE 
+
+    ;Copiar categoria[3] a manopla.....
+    mov r8b, [rbx + rsi + CASO_CATEGORIA_OFFSET]    ; Hasta aca funca
+    mov [r15 + rcx + CASO_CATEGORIA_OFFSET], r8b    ; Hasta aca tambien
+    mov r8b, [rbx + rsi + CASO_CATEGORIA_OFFSET + 1]    ; Hasta aca funca
+    mov [r15 + rcx + CASO_CATEGORIA_OFFSET + 1], r8b    ; Hasta aca tambien
+    mov r8b, [rbx + rsi + CASO_CATEGORIA_OFFSET + 2]    ; Hasta aca funca
+    mov [r15 + rcx + CASO_CATEGORIA_OFFSET + 2], r8b    ; Hasta aca tambien
+
+    ;Copiar estado
+    mov r8w, [rbx + rsi + CASO_ESTADO_OFFSET]
+    mov [r15 + rcx + CASO_ESTADO_OFFSET], r8w
+
+    ;Copiar puntero a usuario
+    mov r8, [rbx + rsi + CASO_USUARIO_OFFSET]
+    mov [r15 + rcx + CASO_USUARIO_OFFSET], r8
+    inc qword [rbp - 64]    ;iteradorNivel2++
+
+
+
+    .incrementarCiclo:
+
+    inc r9d 
+    cmp r9d, r12d                ; while (r9/iterador < largo)
+    jl .ciclo
+
+
+
+    ;------------------------------------------------------TestFuncionalidad
+
+
+    .mallochearResultado:
+
+    mov rdi, SEGMENTACION_SIZE ;pasamos comoprimerparametro el tam delsegmento enbytes para malloc
+    call malloc ; rax = segmentacion_t*, nuestro resultado
+
+    mov [rax + SEGMENTACION_CASOS0_OFFSET], r13
+    mov [rax + SEGMENTACION_CASOS1_OFFSET], r14
+    mov [rax + SEGMENTACION_CASOS2_OFFSET], r15
 
 
     .epilogo:
-    add rsp, 8
+    add rsp, 24
     pop r15
     pop r14
     pop r13
     pop r12
     pop rbx
+    pop rbp
     ret
-;
