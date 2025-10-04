@@ -20,6 +20,7 @@ int main() {
 
 uint32_t cantidad_total_de_elementos_Mia(lista_t* lista) {
 
+	//Chequeo Null pointer
 	if (lista == NULL) {
 		return 0;
 	} 
@@ -27,6 +28,7 @@ uint32_t cantidad_total_de_elementos_Mia(lista_t* lista) {
 	uint32_t res = actual->longitud;
 	nodo_t* siguiente = actual->next;
 
+	//
 	while (siguiente != NULL) {
 		actual = siguiente;
 		res += actual->longitud;
